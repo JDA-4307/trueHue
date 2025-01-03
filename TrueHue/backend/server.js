@@ -25,7 +25,7 @@ app.get("/test", (req, res) => {
 app.post("/test", async (req, res) => {
   const text = "hi";
   const { image, mimeType } = req.body;
-
+  console.log(image);
   const GEMINI_API_KEY = "AIzaSyDtz8L71BONrRHHRRbs1oICM4-O02zlO88"; // Replace with your API key
   const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
