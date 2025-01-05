@@ -28,6 +28,7 @@ except Exception as e:
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
+
 # Define image dimensions
 img_height = 224
 img_width = 224
