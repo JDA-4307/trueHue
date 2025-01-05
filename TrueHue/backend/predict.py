@@ -1,3 +1,5 @@
+import sys
+import json
 import base64
 import numpy as np
 import tensorflow as tf
@@ -20,7 +22,7 @@ try:
     logger.info(f"TFLite model loaded successfully from {tflite_model_path}")
 except Exception as e:
     logger.error(f"Error loading TFLite model: {e}")
-    exit(1)
+    sys.exit(1)
 
 # Get input and output tensor details
 input_details = interpreter.get_input_details()
@@ -74,24 +76,6 @@ def preprocess_image(base64_string):
         logger.error(f"Error processing image: {e}")
         return None
 
-def encode_image_to_base64(image_path):
-    """
-    Encodes an image file into a Base64 string.
-
-    Args:
-      image_path (str): Path to the image file.
-
-    Returns:
-      str or None: Base64 encoded string of the image or None if encoding fails.
-    """
-    try:
-        with open(image_path, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
-        return encoded_string
-    except Exception as e:
-        logger.error(f"Error encoding image: {e}")
-        return None
-
 def predict_image(base64_image):
     """
     Predicts the class of the image using the TFLite model.
@@ -118,10 +102,7 @@ def predict_image(base64_image):
         probabilities = output_data[0]
 
         # Apply softmax if not already applied in the model
-        if output_details[0]['dtype'] == np.float32:
-            probabilities = tf.nn.softmax(probabilities).numpy()
-        else:
-            probabilities = probabilities.astype(np.float32)
+        probabilities = tf.nn.softmax(probabilities).numpy()
 
         predicted_index = np.argmax(probabilities)
         predicted_class = class_names[predicted_index]
@@ -133,14 +114,23 @@ def predict_image(base64_image):
         logger.error(f"Error during prediction: {e}")
         return {"error": "An error occurred during prediction"}
 
-# Example usage:
 if __name__ == "__main__":
-    # Replace with your actual image path
-    image_path = "./test-image.jpg"
+    try:
+        # Read input from stdin
+        input_data = sys.stdin.read()
+        data = json.loads(input_data)
 
-    base64_image = encode_image_to_base64(image_path)
-    if base64_image:
-        result = predict_image(base64_image)
-        print(result)
-    else:
-        logger.error("Failed to encode image.")
+        image = data.get("image")
+        mime_type = data.get("mimeType")
+
+        if not image or not mime_type:
+            print(json.dumps({"error": "Invalid input"}))
+            sys.exit(1)
+
+        result = predict_image(image)
+        print(json.dumps(result))
+
+    except Exception as e:
+        logger.error(f"Error in main script: {e}")
+        print(json.dumps({"error": str(e)}))
+        sys.exit(1)

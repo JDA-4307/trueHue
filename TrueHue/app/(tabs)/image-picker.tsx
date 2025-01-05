@@ -61,8 +61,8 @@ export default function ImagePickerScreen() {
       //formData.append("photo", blob, "photo.jpg"); // Blob + filename
 
       // Send the image to the backend
-      console.log("after backend call");
-      console.log(imageBase64);
+      //console.log("after backend call");
+      //console.log(imageBase64);
       //const reponse = await axios.post(BACKEND_URL_TEST, )
 
       const response = await axios.post(
@@ -77,10 +77,15 @@ export default function ImagePickerScreen() {
       );
       console.log("after backend call");
 
+      // Assuming `response.data` contains the JSON response:
       const data = response.data;
+      console.log(data);
 
-      if (data?.candidates?.length > 0) {
-        const resultText = data.candidates[0].content.parts[0].text;
+      if (data?.predicted_class) {
+        // Access the predicted_class field from the JSON response
+        const resultText = `Predicted Class: ${
+          data.predicted_class
+        }\nConfidence: ${data.confidence.toFixed(2)}%`;
         setResponseText(resultText);
         Alert.alert("Analysis Result", resultText);
       } else {
