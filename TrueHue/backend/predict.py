@@ -34,7 +34,8 @@ img_height = 224
 img_width = 224
 
 # Define class names (ensure this matches your model's output)
-class_names = ['graphiteWalnut', 'mediumCherry', 'mediumWalnut']  # Update accordingly
+class_names = ['mediumCherry', 'desertOak', 'graphiteWalnut']
+
 
 def preprocess_image(base64_string):
     """
@@ -92,6 +93,8 @@ def predict_image(base64_image):
         if preprocessed_image is None:
             return {"error": "Error processing image"}
 
+        logger.info(f"Preprocessed image shape: {preprocessed_image.shape}")
+
         # Set the tensor to point to the input data to be inferred
         interpreter.set_tensor(input_details[0]['index'], preprocessed_image)
 
@@ -100,12 +103,21 @@ def predict_image(base64_image):
 
         # Retrieve the output
         output_data = interpreter.get_tensor(output_details[0]['index'])
+        logger.info(f"Output data: {output_data}")
+
         probabilities = output_data[0]
+        logger.info(f"Probabilities before softmax: {probabilities}")
 
         # Apply softmax if not already applied in the model
         probabilities = tf.nn.softmax(probabilities).numpy()
+        logger.info(f"Probabilities after softmax: {probabilities}")
 
         predicted_index = np.argmax(probabilities)
+        logger.info(f"Predicted index: {predicted_index}")
+
+        if predicted_index >= len(class_names):
+            return {"error": "Predicted index out of range for class names"}
+
         predicted_class = class_names[predicted_index]
         confidence = float(probabilities[predicted_index] * 100)
 
@@ -114,6 +126,7 @@ def predict_image(base64_image):
     except Exception as e:
         logger.error(f"Error during prediction: {e}")
         return {"error": "An error occurred during prediction"}
+
 
 if __name__ == "__main__":
     try:
