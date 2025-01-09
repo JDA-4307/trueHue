@@ -10,11 +10,13 @@ export default function ImagePickerScreen() {
   const [hasGalleryPermission, setHasGalleryPermission] = useState<
     boolean | null
   >(null);
+  
   //const BACKEND_URL_TEST = "https://bbe8-128-61-160-175.ngrok-free.app/test"; //need to start ngrok session
   const BACKEND_URL = "http://localhost:3000/analyze"; // Replace with your backend's actual URL
   const BACKEND_URL_TEST = "http://localhost:3000/test";
-  //const BACKEND_URL_TEST = "http://10.91.102.175:3000/test"; // Replace with your backend's actual URL
-  // Replace with your backend's actual URL
+  //const BACKEND_URL_TEST = "http://10.91.102.175:3000/test"; // ip on gatech network
+
+
 
   useEffect(() => {
     (async () => {
