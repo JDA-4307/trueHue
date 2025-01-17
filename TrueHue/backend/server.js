@@ -9,7 +9,13 @@ const app = express();
 const PORT = 3000;
 
 // Middlewares
-app.use(cors());
+app.use(
+  cors({
+    origin: "*", // Allows all origins (not recommended for production)
+    methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+  })
+);
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 

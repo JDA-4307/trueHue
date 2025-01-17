@@ -7,96 +7,106 @@ export default function ImagePickerScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [responseText, setResponseText] = useState<string | null>(null);
-  const [hasGalleryPermission, setHasGalleryPermission] = useState<
-    boolean | null
-  >(null);
-  
-  //const BACKEND_URL_TEST = "https://bbe8-128-61-160-175.ngrok-free.app/test"; //need to start ngrok session
-  const BACKEND_URL = "http://localhost:3000/analyze"; // Replace with your backend's actual URL
-  const BACKEND_URL_TEST = "http://localhost:3000/test";
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
+
+  //const BACKEND_URL = "http://localhost:3000/analyze"; // Replace with your backend's actual URL
+  const BACKEND_URL_TEST = "https://1f89-128-61-160-175.ngrok-free.app/test"; //need to start ngrok session
+  //const BACKEND_URL = "http://localhost:3000/analyze"; // Replace with your backend's actual URL
+  //const BACKEND_URL_TEST = "http://localhost:3000/test";
   //const BACKEND_URL_TEST = "http://10.91.102.175:3000/test"; // ip on gatech network
-
-
 
   useEffect(() => {
     (async () => {
-      const galleryStatus =
+      const cameraPermission =
+        await ImagePicker.requestCameraPermissionsAsync();
+      const galleryPermission =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
-      setHasGalleryPermission(galleryStatus.status === "granted");
+
+      if (
+        cameraPermission.status === "granted" &&
+        galleryPermission.status === "granted"
+      ) {
+        setPermissionsGranted(true);
+      } else {
+        setPermissionsGranted(false);
+        Alert.alert(
+          "Permissions required",
+          "Camera and gallery access are needed."
+        );
+      }
     })();
   }, []);
 
   const pickImage = async () => {
-    if (hasGalleryPermission === false) {
-      return Alert.alert("Permission for media access not granted.");
+    if (!permissionsGranted) {
+      return Alert.alert(
+        "Permission denied",
+        "Access to gallery is not granted."
+      );
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [4, 3], // Optional aspect ratio
-      quality: 0.1, // 0 to 1, where 1 is highest quality
-      base64: true, // Backend will handle base64 conversion
+      aspect: [4, 3],
+      quality: 0.5,
+      base64: true,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImageUri(result.assets[0].uri); // Set the image URI for display
-      setImageBase64(result.assets[0].base64); // Store the Base64 string
+      setImageUri(result.assets[0].uri);
+      setImageBase64(result.assets[0].base64);
+    }
+  };
+
+  const takePicture = async () => {
+    if (!permissionsGranted) {
+      return Alert.alert(
+        "Permission denied",
+        "Access to camera is not granted."
+      );
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setImageUri(result.assets[0].uri);
+      setImageBase64(result.assets[0].base64);
     }
   };
 
   const uploadImage = async () => {
-    if (!imageUri) {
-      Alert.alert("No image selected", "Please select an image first.");
-      return;
-    }
     if (!imageBase64) {
-      Alert.alert("No image selected", "Please select an image first.");
+      Alert.alert(
+        "No image selected",
+        "Please select or take a picture first."
+      );
       return;
     }
 
     try {
-      // Fetch the file at the `imageUri` and convert it to a Blob
-      //const imageResponse = await fetch(imageUri);
-      //const blob = await imageResponse.blob();
-
-      // Create a new FormData object and append the Blob
-      //const formData = new FormData();
-      //formData.append("photo", blob, "photo.jpg"); // Blob + filename
-
-      // Send the image to the backend
-      //console.log("after backend call");
-      //console.log(imageBase64);
-      //const reponse = await axios.post(BACKEND_URL_TEST, )
-
       const response = await axios.post(
         BACKEND_URL_TEST,
-        {
-          image: imageBase64,
-          mimeType: "image/jpeg",
-        },
-        {
-          headers: { "Content-Type": "application/json" },
-        }
+        { image: imageBase64, mimeType: "image/jpeg" },
+        { headers: { "Content-Type": "application/json" } }
       );
-      console.log("after backend call");
 
-      // Assuming `response.data` contains the JSON response:
       const data = response.data;
-      console.log(data);
 
       if (data?.predicted_class) {
-        // Access the predicted_class field from the JSON response
         const resultText = `Predicted Class: ${
           data.predicted_class
         }\nConfidence: ${data.confidence.toFixed(2)}%`;
         setResponseText(resultText);
         Alert.alert("Analysis Result", resultText);
       } else {
-        Alert.alert(
-          "Error",
-          "No response or unexpected format from the backend. Check console logs."
-        );
+        Alert.alert("Error", "Unexpected response format from the backend.");
       }
     } catch (error) {
       console.error("Upload Error:", error.response?.data || error.message);
@@ -111,7 +121,8 @@ export default function ImagePickerScreen() {
 
   return (
     <View style={styles.container}>
-      <Button title="Select Image" onPress={pickImage} />
+      <Button title="Select Image from Gallery" onPress={pickImage} />
+      <Button title="Take a Picture" onPress={takePicture} />
       {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
       {imageUri && (
         <View style={styles.uploadButton}>
