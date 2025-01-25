@@ -7,14 +7,13 @@ export default function ImagePickerScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [responseText, setResponseText] = useState<string | null>(null);
-  const [hasGalleryPermission, setHasGalleryPermission] = useState<
-    boolean | null
-  >(null);
+  const [hasGalleryPermission, setHasGalleryPermission] = useState<boolean | null>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
 
   //const BACKEND_URL_TEST = "https://bbe8-128-61-160-175.ngrok-free.app/test"; //need to start ngrok session
   //const BACKEND_URL_TEST = "http://localhost:3000/test"; // Replace with your backend's actual URL
-  const BACKEND_URL_TEST = "http://localhost:3050/test";
-  //const BACKEND_URL_TEST = "http://10.91.102.175:3050/test";
+  // const BACKEND_URL_TEST = "http://localhost:3050/test";
+  const BACKEND_URL_TEST = "http://192.168.1.191:3050/test";
 
   //const BACKEND_URL_TEST = "https://c712-128-61-160-175.ngrok-free.app/test"; // ip on gatech network
   //const BACKEND_URL_TEST = "http://localhost:3000/test";
@@ -23,9 +22,13 @@ export default function ImagePickerScreen() {
       const galleryStatus =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       setHasGalleryPermission(galleryStatus.status === "granted");
+      const cameraStatus = 
+        await ImagePicker.requestCameraPermissionsAsync();
+      setHasCameraPermission(cameraStatus.status === "granted");
     })();
   }, []);
 
+  //Pick Image
   const pickImage = async () => {
     if (hasGalleryPermission === false) {
       return Alert.alert("Permission for media access not granted.");
@@ -45,6 +48,27 @@ export default function ImagePickerScreen() {
     }
   };
 
+  //Take picture
+  const takePicture = async () => {
+    if (hasCameraPermission === false) {
+      return Alert.alert("Permission for camera access is not granted.");
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.1,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setImageUri(result.assets[0].uri);
+      setImageBase64(result.assets[0].base64);
+    }
+  };
+
+  
   const uploadImage = async () => {
     if (!imageUri) {
       Alert.alert("No image selected", "Please select an image first.");
@@ -112,6 +136,7 @@ export default function ImagePickerScreen() {
   return (
     <View style={styles.container}>
       <Button title="Select Image" onPress={pickImage} />
+      <Button title="Take Picture" onPress={takePicture} />
       {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
       {imageUri && (
         <View style={styles.uploadButton}>
