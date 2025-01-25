@@ -6,7 +6,7 @@ const multer = require("multer");
 const { spawn } = require("child_process"); // Import child_process
 
 const app = express();
-const PORT = 3000;
+const PORT = 3050;
 
 // Middlewares
 app.use(
@@ -44,7 +44,7 @@ app.post("/test", async (req, res) => {
 
     // Prepare the input for the Python script
     const input = JSON.stringify({ image, mimeType });
-
+    const startTime = Date.now();
     // Spawn the Python process
     const pythonProcess = spawn("python3", ["predict.py"]);
 
@@ -73,6 +73,8 @@ app.post("/test", async (req, res) => {
         if (result.error) {
           return res.status(500).json({ error: result.error });
         }
+        const endTime = Date.now(); // Stop the timer
+        console.log(`Elapsed time: ${endTime - startTime} ms`);
         return res.status(200).json(result);
       } catch (parseError) {
         console.error(`Error parsing Python script output: ${parseError}`);
