@@ -1,7 +1,8 @@
 # Color Verification & Validation
 This project, "Color Verification & Validation," is developed to assist **Steelcase**'s QA operators and field engineers in identifying wood veneer colors with high accuracy. It currently identifies Medium Cherry and Graphite Walnut, with plans to expand functionality for color validation in future releases
 
-![Steelcase Logo](image.png)
+<img src="image.png" alt="Steelcase Logo" width="500">
+
 
 ## Release Notes
 
