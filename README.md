@@ -10,9 +10,9 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
 
 ### Version 0.1.0:
 
-#### New Features
-* Transitioned from a web application to a mobile app using React Native
-* Introduced a feature allowing users to take pictures directly within the app
+#### Features
+* Transitioned from a web application to a mobile app using React Native.
+* Building upon the existing upload picture feature, the app now includes a new functionality that allows user to take pictures directly within in the app.
 
 #### Bug Fixes
 * No fixes in this release
@@ -21,7 +21,7 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
 - The current version supports only two color classes: **Medium Cherry** and **Graphite Walnut**.
 - The model always returns a confidence level of 100%, which may indicate a bug in the confidence calculation
 
-### Version 0.0.0
+### Version 0.0.0:
 
 #### **Features**
 - Identifies wood veneer colors as either **Medium Cherry** or **Graphite Walnut**.
@@ -31,4 +31,4 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
 - No fixes in this release, as this is the first iteration.
 
 #### **Known Issues**
-- **Desert Oak images** are incorrectly formatted due to inconsistencies in the dataset preprocessing pipeline. A future update will address this by implementing preprocessing steps.
+- **Desert Oak images** are incorrectly formatted due to inconsistencies in the dataset preprocessing pipeline.
