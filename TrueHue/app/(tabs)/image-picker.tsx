@@ -13,7 +13,9 @@ export default function ImagePickerScreen() {
   //const BACKEND_URL_TEST = "https://bbe8-128-61-160-175.ngrok-free.app/test"; //need to start ngrok session
   //const BACKEND_URL_TEST = "http://localhost:3000/test"; // Replace with your backend's actual URL
   // const BACKEND_URL_TEST = "http://localhost:3050/test";
-  const BACKEND_URL_TEST = "http://192.168.1.191:3050/test";
+  //const BACKEND_URL_TEST = "http://192.168.1.191:3050/test";
+  const BACKEND_URL_TEST = "http://192.168.1.239:3050/test";
+
 
   //const BACKEND_URL_TEST = "https://c712-128-61-160-175.ngrok-free.app/test"; // ip on gatech network
   //const BACKEND_URL_TEST = "http://localhost:3000/test";
@@ -135,8 +137,12 @@ export default function ImagePickerScreen() {
 
   return (
     <View style={styles.container}>
-      <Button title="Select Image" onPress={pickImage} />
-      <Button title="Take Picture" onPress={takePicture} />
+      <View style={styles.buttonContainer}>
+        <Button title="Select Image" onPress={pickImage} />
+      </View>
+      <View style={styles.buttonContainer}>
+        <Button title="Take Picture" onPress={takePicture} />
+      </View>
       {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
       {imageUri && (
         <View style={styles.uploadButton}>
@@ -153,9 +159,33 @@ export default function ImagePickerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  image: { width: 300, height: 300, marginTop: 20 },
-  uploadButton: { marginTop: 20 },
-  responseContainer: { marginTop: 20, paddingHorizontal: 20 },
-  responseText: { fontSize: 16, textAlign: "center" },
+  container: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center" 
+  },
+
+  buttonContainer: { 
+    marginVertical: 10, 
+  },
+
+  image: { 
+    width: 300, 
+    height: 300, 
+    marginTop: 20 
+  },
+
+  uploadButton: { 
+    marginTop: 20 
+  },
+
+  responseContainer: { 
+    marginTop: 20, 
+    paddingHorizontal: 20 
+  },
+
+  responseText: { 
+    fontSize: 16, 
+    textAlign: "center" 
+  },
 });
