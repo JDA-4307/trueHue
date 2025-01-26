@@ -12,13 +12,8 @@ export default function ImagePickerScreen() {
 
   //const BACKEND_URL_TEST = "https://bbe8-128-61-160-175.ngrok-free.app/test"; //need to start ngrok session
   //const BACKEND_URL_TEST = "http://localhost:3000/test"; // Replace with your backend's actual URL
-  // const BACKEND_URL_TEST = "http://localhost:3050/test";
-  //const BACKEND_URL_TEST = "http://192.168.1.191:3050/test";
-  const BACKEND_URL_TEST = "http://192.168.1.239:3050/test";
-
-
+  const BACKEND_URL_TEST = "http://localhost:3050/test"; // Change localhost here with your ip for usage.
   //const BACKEND_URL_TEST = "https://c712-128-61-160-175.ngrok-free.app/test"; // ip on gatech network
-  //const BACKEND_URL_TEST = "http://localhost:3000/test";
   useEffect(() => {
     (async () => {
       const galleryStatus =
@@ -162,26 +157,25 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     justifyContent: "center", 
-    alignItems: "center" 
-  },
-
-  buttonContainer: { 
-    marginVertical: 10, 
+    alignItems: "center", 
+    padding: 20,
   },
 
   image: { 
     width: 300, 
     height: 300, 
-    marginTop: 20 
+  },
+
+  buttonContainer: { 
+    marginVertical: 10,
   },
 
   uploadButton: { 
-    marginTop: 20 
+    marginTop: 20,
   },
 
   responseContainer: { 
-    marginTop: 20, 
-    paddingHorizontal: 20 
+    paddingHorizontal: 20,
   },
 
   responseText: { 
