@@ -5,6 +5,13 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
 <img src="image.png" alt="Steelcase Logo" width="400">
 </p>
 
+## Setup
+* 1. Clone this repository onto your computer.
+* 2. Install Node.js onto your computer. https://nodejs.org/en
+* 3. Install Expo CLI onto your computer by using this command in the terminal: npm install -g expo-cli8
+* 4. Navigate to the backend folder in the terminal and enter "node server.js"
+* 5. Navigate to the TrueHue folder in the terminal and enter "npx expo start"
+* 6. Run the app on the platform of your choice. 
 
 ## Release Notes
 
