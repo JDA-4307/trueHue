@@ -10,22 +10,27 @@ export default function ImagePickerScreen() {
   const [hasGalleryPermission, setHasGalleryPermission] = useState<
     boolean | null
   >(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<
+    boolean | null
+  >(null);
 
-  //const BACKEND_URL_TEST = "https://bbe8-128-61-160-175.ngrok-free.app/test"; //need to start ngrok session
-  //const BACKEND_URL_TEST = "http://localhost:3000/test"; // Replace with your backend's actual URL
-  const BACKEND_URL_TEST = "http://localhost:3050/test";
-  //const BACKEND_URL_TEST = "http://10.91.102.175:3050/test";
+  // Backend URLs
+  const BACKEND_URL_TEST = "http://10.2.82.76:3050/test";
+  const BACKEND_URL_MEDIUM_CHERRY =
+    "http://10.2.82.76:3050/predict_medium_cherry";
 
-  //const BACKEND_URL_TEST = "https://c712-128-61-160-175.ngrok-free.app/test"; // ip on gatech network
-  //const BACKEND_URL_TEST = "http://localhost:3000/test";
   useEffect(() => {
     (async () => {
       const galleryStatus =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       setHasGalleryPermission(galleryStatus.status === "granted");
+
+      const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
+      setHasCameraPermission(cameraStatus.status === "granted");
     })();
   }, []);
 
+  // Pick Image
   const pickImage = async () => {
     if (hasGalleryPermission === false) {
       return Alert.alert("Permission for media access not granted.");
@@ -34,76 +39,104 @@ export default function ImagePickerScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [4, 3], // Optional aspect ratio
-      quality: 0.1, // 0 to 1, where 1 is highest quality
-      base64: true, // Backend will handle base64 conversion
+      aspect: [4, 3],
+      quality: 0.1,
+      base64: true,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImageUri(result.assets[0].uri); // Set the image URI for display
-      setImageBase64(result.assets[0].base64); // Store the Base64 string
+      setImageUri(result.assets[0].uri);
+      setImageBase64(result.assets[0].base64);
     }
   };
 
-  const uploadImage = async () => {
-    if (!imageUri) {
-      Alert.alert("No image selected", "Please select an image first.");
-      return;
+  // Take Picture
+  const takePicture = async () => {
+    if (hasCameraPermission === false) {
+      return Alert.alert("Permission for camera access is not granted.");
     }
-    if (!imageBase64) {
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.1,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setImageUri(result.assets[0].uri);
+      setImageBase64(result.assets[0].base64);
+    }
+  };
+
+  // Upload Image to the /test API
+  const uploadImageToTest = async () => {
+    if (!imageUri || !imageBase64) {
       Alert.alert("No image selected", "Please select an image first.");
       return;
     }
 
     try {
-      // Fetch the file at the `imageUri` and convert it to a Blob
-      //const imageResponse = await fetch(imageUri);
-      //const blob = await imageResponse.blob();
-
-      // Create a new FormData object and append the Blob
-      //const formData = new FormData();
-      //formData.append("photo", blob, "photo.jpg"); // Blob + filename
-
-      // Send the image to the backend
-      //console.log("after backend call");
-      //console.log(imageBase64);
-      //const reponse = await axios.post(BACKEND_URL_TEST, )
-
       const response = await axios.post(
         BACKEND_URL_TEST,
-        {
-          image: imageBase64,
-          mimeType: "image/jpeg",
-        },
-        {
-          headers: { "Content-Type": "application/json" },
-        }
+        { image: imageBase64, mimeType: "image/jpeg" },
+        { headers: { "Content-Type": "application/json" } }
       );
-      console.log("after backend call");
 
-      // Assuming `response.data` contains the JSON response:
-      const data = response.data;
-      console.log(data);
+      console.log("Test Response:", response.data);
 
-      if (data?.predicted_class) {
-        // Access the predicted_class field from the JSON response
+      if (response.data?.predicted_class) {
         const resultText = `Predicted Class: ${
-          data.predicted_class
-        }\nConfidence: ${data.confidence.toFixed(2)}%`;
+          response.data.predicted_class
+        }\nConfidence: ${response.data.confidence.toFixed(2)}%`;
         setResponseText(resultText);
         Alert.alert("Analysis Result", resultText);
       } else {
-        Alert.alert(
-          "Error",
-          "No response or unexpected format from the backend. Check console logs."
-        );
+        Alert.alert("Error", "Unexpected response from backend. Check logs.");
       }
     } catch (error) {
       console.error("Upload Error:", error.response?.data || error.message);
       Alert.alert(
         "Error",
         `Failed to analyze image: ${
-          error.response?.data?.error?.message || error.message
+          error.response?.data?.error || error.message
+        }`
+      );
+    }
+  };
+
+  // Upload Image to the /predict_medium_cherry API
+  const uploadImageToMediumCherry = async () => {
+    if (!imageUri || !imageBase64) {
+      Alert.alert("No image selected", "Please select an image first.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        BACKEND_URL_MEDIUM_CHERRY,
+        { image: imageBase64, mimeType: "image/jpeg" },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      console.log("Medium Cherry Response:", response.data);
+
+      if (response.data?.position_score !== undefined) {
+        const resultText = `Position: (-1, 1) ${response.data.position_score.toFixed(
+          2
+        )}\nConfidence: ${response.data.confidence.toFixed(2)}%`;
+        setResponseText(resultText);
+        Alert.alert("Medium Cherry Analysis", resultText);
+      } else {
+        Alert.alert("Error", "Unexpected response from backend. Check logs.");
+      }
+    } catch (error) {
+      console.error("Upload Error:", error.response?.data || error.message);
+      Alert.alert(
+        "Error",
+        `Failed to analyze image: ${
+          error.response?.data?.error || error.message
         }`
       );
     }
@@ -111,12 +144,28 @@ export default function ImagePickerScreen() {
 
   return (
     <View style={styles.container}>
-      <Button title="Select Image" onPress={pickImage} />
+      <View style={styles.buttonContainer}>
+        <Button title="Select Image" onPress={pickImage} />
+      </View>
+      <View style={styles.buttonContainer}>
+        <Button title="Take Picture" onPress={takePicture} />
+      </View>
       {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
       {imageUri && (
-        <View style={styles.uploadButton}>
-          <Button title="Analyze Image" onPress={uploadImage} />
-        </View>
+        <>
+          <View style={styles.uploadButton}>
+            <Button
+              title="Analyze Image (Test API)"
+              onPress={uploadImageToTest}
+            />
+          </View>
+          <View style={styles.uploadButton}>
+            <Button
+              title="Analyze Medium Cherry"
+              onPress={uploadImageToMediumCherry}
+            />
+          </View>
+        </>
       )}
       {responseText && (
         <View style={styles.responseContainer}>
@@ -128,9 +177,27 @@ export default function ImagePickerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  image: { width: 300, height: 300, marginTop: 20 },
-  uploadButton: { marginTop: 20 },
-  responseContainer: { marginTop: 20, paddingHorizontal: 20 },
-  responseText: { fontSize: 16, textAlign: "center" },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  image: {
+    width: 300,
+    height: 300,
+  },
+  buttonContainer: {
+    marginVertical: 10,
+  },
+  uploadButton: {
+    marginTop: 20,
+  },
+  responseContainer: {
+    paddingHorizontal: 20,
+  },
+  responseText: {
+    fontSize: 16,
+    textAlign: "center",
+  },
 });
