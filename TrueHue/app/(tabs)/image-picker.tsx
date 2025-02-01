@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import { View, Button, Image, StyleSheet, Alert, Text } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
+import { Picker } from "@react-native-picker/picker";
 
 export default function ImagePickerScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [responseText, setResponseText] = useState<string | null>(null);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<string>("classify"); // Default selection
   const [hasGalleryPermission, setHasGalleryPermission] = useState<
     boolean | null
   >(null);
@@ -15,9 +17,17 @@ export default function ImagePickerScreen() {
   >(null);
 
   // Backend URLs
-  const BACKEND_URL_TEST = "http://10.2.82.76:3050/test";
-  const BACKEND_URL_MEDIUM_CHERRY =
-    "http://10.2.82.76:3050/predict_medium_cherry";
+  const BACKEND_URLS = {
+    classify: "http://10.2.82.76:3050/test",
+    medium_cherry: "http://10.2.82.76:3050/predict_medium_cherry",
+    graphite_walnut: "http://10.2.82.76:3050/predict_graphite_walnut",
+  };
+
+  const ANALYSIS_OPTIONS = [
+    { label: "Classify Image", value: "classify" },
+    { label: "Analyze Medium Cherry", value: "medium_cherry" },
+    { label: "Analyze Graphite Walnut", value: "graphite_walnut" },
+  ];
 
   useEffect(() => {
     (async () => {
@@ -40,7 +50,7 @@ export default function ImagePickerScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.1,
+      quality: 1,
       base64: true,
     });
 
@@ -60,7 +70,7 @@ export default function ImagePickerScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.1,
+      quality: 1,
       base64: true,
     });
 
@@ -70,64 +80,46 @@ export default function ImagePickerScreen() {
     }
   };
 
-  // Upload Image to the /test API
-  const uploadImageToTest = async () => {
+  // Analyze Image based on Selected Option
+  const analyzeImage = async () => {
     if (!imageUri || !imageBase64) {
       Alert.alert("No image selected", "Please select an image first.");
       return;
     }
 
+    const selectedUrl = BACKEND_URLS[selectedAnalysis];
+
     try {
       const response = await axios.post(
-        BACKEND_URL_TEST,
+        selectedUrl,
         { image: imageBase64, mimeType: "image/jpeg" },
         { headers: { "Content-Type": "application/json" } }
       );
 
-      console.log("Test Response:", response.data);
+      console.log(`${selectedAnalysis} Response:`, response.data);
 
-      if (response.data?.predicted_class) {
+      if (response.data?.position_score !== undefined) {
+        const resultText = `Position: (-1 to 1) ${response.data.position_score.toFixed(
+          2
+        )}\nConfidence: ${response.data.confidence.toFixed(2)}%`;
+        setResponseText(resultText);
+        Alert.alert(
+          `${
+            ANALYSIS_OPTIONS.find((o) => o.value === selectedAnalysis)?.label
+          } Result`,
+          resultText
+        );
+      } else if (response.data?.predicted_class) {
         const resultText = `Predicted Class: ${
           response.data.predicted_class
         }\nConfidence: ${response.data.confidence.toFixed(2)}%`;
         setResponseText(resultText);
-        Alert.alert("Analysis Result", resultText);
-      } else {
-        Alert.alert("Error", "Unexpected response from backend. Check logs.");
-      }
-    } catch (error) {
-      console.error("Upload Error:", error.response?.data || error.message);
-      Alert.alert(
-        "Error",
-        `Failed to analyze image: ${
-          error.response?.data?.error || error.message
-        }`
-      );
-    }
-  };
-
-  // Upload Image to the /predict_medium_cherry API
-  const uploadImageToMediumCherry = async () => {
-    if (!imageUri || !imageBase64) {
-      Alert.alert("No image selected", "Please select an image first.");
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        BACKEND_URL_MEDIUM_CHERRY,
-        { image: imageBase64, mimeType: "image/jpeg" },
-        { headers: { "Content-Type": "application/json" } }
-      );
-
-      console.log("Medium Cherry Response:", response.data);
-
-      if (response.data?.position_score !== undefined) {
-        const resultText = `Position: (-1, 1) ${response.data.position_score.toFixed(
-          2
-        )}\nConfidence: ${response.data.confidence.toFixed(2)}%`;
-        setResponseText(resultText);
-        Alert.alert("Medium Cherry Analysis", resultText);
+        Alert.alert(
+          `${
+            ANALYSIS_OPTIONS.find((o) => o.value === selectedAnalysis)?.label
+          } Result`,
+          resultText
+        );
       } else {
         Alert.alert("Error", "Unexpected response from backend. Check logs.");
       }
@@ -153,17 +145,25 @@ export default function ImagePickerScreen() {
       {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
       {imageUri && (
         <>
-          <View style={styles.uploadButton}>
-            <Button
-              title="Analyze Image (Test API)"
-              onPress={uploadImageToTest}
-            />
+          {/* Dropdown Menu */}
+          <View style={styles.dropdownContainer}>
+            <Picker
+              selectedValue={selectedAnalysis}
+              onValueChange={(itemValue) => setSelectedAnalysis(itemValue)}
+            >
+              {ANALYSIS_OPTIONS.map((option) => (
+                <Picker.Item
+                  key={option.value}
+                  label={option.label}
+                  value={option.value}
+                />
+              ))}
+            </Picker>
           </View>
+
+          {/* Analyze Button */}
           <View style={styles.uploadButton}>
-            <Button
-              title="Analyze Medium Cherry"
-              onPress={uploadImageToMediumCherry}
-            />
+            <Button title="Analyze" onPress={analyzeImage} />
           </View>
         </>
       )}
@@ -189,6 +189,14 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     marginVertical: 10,
+  },
+  dropdownContainer: {
+    width: 250,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    backgroundColor: "#fff",
   },
   uploadButton: {
     marginTop: 20,
