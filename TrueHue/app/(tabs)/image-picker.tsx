@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, Button, Image, StyleSheet, Alert, Text } from "react-native";
+import {
+  View,
+  Button,
+  Image,
+  StyleSheet,
+  Alert,
+  Text,
+  ActivityIndicator,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { Picker } from "@react-native-picker/picker";
@@ -15,6 +23,7 @@ export default function ImagePickerScreen() {
   const [hasCameraPermission, setHasCameraPermission] = useState<
     boolean | null
   >(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Backend URLs (update these URLs as needed)
   const BACKEND_URLS: { [key: string]: string } = {
@@ -40,7 +49,7 @@ export default function ImagePickerScreen() {
     })();
   }, []);
 
-  // Pick Image from gallery
+  // Pick image from gallery
   const pickImage = async () => {
     if (hasGalleryPermission === false) {
       return Alert.alert("Permission for media access not granted.");
@@ -80,13 +89,14 @@ export default function ImagePickerScreen() {
     }
   };
 
-  // Analyze Image based on selected analysis option
+  // Analyze image based on selected analysis option
   const analyzeImage = async () => {
     if (!imageUri || !imageBase64) {
       Alert.alert("No image selected", "Please select an image first.");
       return;
     }
 
+    setIsLoading(true);
     const selectedUrl = BACKEND_URLS[selectedAnalysis];
 
     try {
@@ -134,6 +144,8 @@ export default function ImagePickerScreen() {
           }`
         );
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -146,12 +158,17 @@ export default function ImagePickerScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.buttonContainer}>
-        <Button title="Select Image" onPress={pickImage} />
-      </View>
-      <View style={styles.buttonContainer}>
-        <Button title="Take Picture" onPress={takePicture} />
-      </View>
+      {/* Show image selection buttons only if no image has been picked */}
+      {!imageUri && (
+        <>
+          <View style={styles.buttonContainer}>
+            <Button title="Select Image" onPress={pickImage} />
+          </View>
+          <View style={styles.buttonContainer}>
+            <Button title="Take Picture" onPress={takePicture} />
+          </View>
+        </>
+      )}
 
       {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
 
@@ -173,15 +190,26 @@ export default function ImagePickerScreen() {
             </Picker>
           </View>
 
+          {/* Loading indicator */}
+          {isLoading && (
+            <ActivityIndicator
+              size="large"
+              color="#0000ff"
+              style={styles.loader}
+            />
+          )}
+
           {/* Analyze and Reupload Buttons */}
-          <View style={styles.buttonRow}>
-            <View style={styles.flexButton}>
-              <Button title="Analyze" onPress={analyzeImage} />
+          {!isLoading && (
+            <View style={styles.buttonRow}>
+              <View style={styles.flexButton}>
+                <Button title="Analyze" onPress={analyzeImage} />
+              </View>
+              <View style={styles.flexButton}>
+                <Button title="Reupload" onPress={reuploadImage} />
+              </View>
             </View>
-            <View style={styles.flexButton}>
-              <Button title="Reupload" onPress={reuploadImage} />
-            </View>
-          </View>
+          )}
         </>
       )}
 
@@ -236,5 +264,8 @@ const styles = StyleSheet.create({
   responseText: {
     fontSize: 16,
     textAlign: "center",
+  },
+  loader: {
+    marginTop: 20,
   },
 });
