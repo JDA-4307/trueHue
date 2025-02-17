@@ -1,3 +1,4 @@
+print("running script ")
 import tensorflow as tf
 from tensorflow.lite.python.interpreter import Interpreter
 import logging
@@ -13,7 +14,7 @@ import numpy as np
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
+print("importing model")
 # Path to TFLite model
 tflite_model_path = './model.tflite'
 

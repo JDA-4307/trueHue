@@ -31,6 +31,24 @@ app.get("/test", (req, res) => {
   res.send("Test is running!");
 });
 
+app.post("/networkTest", (req, res) => {
+  const { image, mimeType } = req.body;
+
+  if (!image || !mimeType) {
+    return res
+      .status(400)
+      .json({ error: "Missing 'image' or 'mimeType' in request body." });
+  }
+
+  // Create a dummy response that mimics a real prediction
+  const dummyResponse = {
+    predicted_class: "mediumCherry",
+    confidence: 95.5, // Example confidence value
+  };
+
+  return res.status(200).json(dummyResponse);
+});
+
 // POST /test endpoint
 app.post("/test", async (req, res) => {
   try {
@@ -46,8 +64,9 @@ app.post("/test", async (req, res) => {
     const input = JSON.stringify({ image, mimeType });
     const startTime = Date.now();
     // Spawn the Python process
+    console.log("starting script");
     const pythonProcess = spawn("python3", ["predict.py"]);
-
+    console.log("script terminated");
     let pythonOutput = "";
     let pythonError = "";
 
