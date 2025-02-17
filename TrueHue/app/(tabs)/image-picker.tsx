@@ -40,8 +40,8 @@ export default function ImagePickerScreen() {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImageUri(result.assets[0].uri); // Set the image URI for display
-      setImageBase64(result.assets[0].base64); // Store the Base64 string
+      setImageUri(result.assets[0]?.uri ?? null);
+      setImageBase64(result.assets[0]?.base64 ?? null);
     }
   };
 
@@ -60,12 +60,11 @@ export default function ImagePickerScreen() {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImageUri(result.assets[0].uri);
-      setImageBase64(result.assets[0].base64);
+      setImageUri(result.assets[0]?.uri ?? null);
+      setImageBase64(result.assets[0]?.base64 ?? null);
     }
   };
 
-  
   const uploadImage = async () => {
     if (!imageUri) {
       Alert.alert("No image selected", "Please select an image first.");
@@ -119,38 +118,54 @@ export default function ImagePickerScreen() {
           "No response or unexpected format from the backend. Check console logs."
         );
       }
-    } catch (error) {
-      console.error("Upload Error:", error.response?.data || error.message);
-      Alert.alert(
-        "Error",
-        `Failed to analyze image: ${
-          error.response?.data?.error?.message || error.message
-        }`
-      );
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error("Upload Error:", error.response?.data || error.message);
+        Alert.alert(
+          "Error",
+          `Failed to analyze image: ${
+            error.response?.data?.error?.message || error.message
+          }`
+        );
+      }
     }
   };
 
+  const reuploadImage = () => {
+    setImageUri(null);
+    setImageBase64(null);
+    setResponseText(null);
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.buttonContainer}>
-        <Button title="Select Image" onPress={pickImage} />
-      </View>
-      <View style={styles.buttonContainer}>
-        <Button title="Take Picture" onPress={takePicture} />
-      </View>
-      {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
-      {imageUri && (
-        <View style={styles.uploadButton}>
-          <Button title="Analyze Image" onPress={uploadImage} />
+      <View style={styles.container}>
+        <View style={styles.buttonContainer}>
+          <Button title="Select Image" onPress={pickImage} />
         </View>
-      )}
-      {responseText && (
-        <View style={styles.responseContainer}>
-          <Text style={styles.responseText}>{responseText}</Text>
+        <View style={styles.buttonContainer}>
+          <Button title="Take Picture" onPress={takePicture} />
         </View>
-      )}
-    </View>
-  );
+    
+        {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
+    
+        {imageUri && (
+          <View style={styles.buttonRow}>
+            <View style={styles.flexButton}>
+              <Button title="Analyze" onPress={uploadImage} disabled={!imageUri} />
+            </View>
+            <View style={styles.flexButton}>
+              <Button title="Reupload" onPress={reuploadImage} />
+            </View>
+          </View>
+        )}
+    
+        {responseText && (
+          <View style={styles.responseContainer}>
+            <Text style={styles.responseText}>{responseText}</Text>
+          </View>
+        )}
+      </View>
+    );
 }
 
 const styles = StyleSheet.create({
@@ -170,9 +185,21 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
 
-  uploadButton: { 
+  buttonRow: {
+    flexDirection: "row", 
+    justifyContent: "center", 
+    alignItems: "center",
     marginTop: 20,
+    gap: 10, 
   },
+  
+  
+  flexButton: {
+    flex: 0,
+    marginHorizontal: 5, 
+    minWidth: 140, 
+  },
+
 
   responseContainer: { 
     paddingHorizontal: 20,
