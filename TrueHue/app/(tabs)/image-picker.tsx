@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  View,
-  Button,
-  Image,
-  StyleSheet,
-  Alert,
-  Text,
-  ActivityIndicator,
+  View, Button, Image, StyleSheet, Alert, Text, ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
@@ -17,12 +11,10 @@ export default function ImagePickerScreen() {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [responseText, setResponseText] = useState<string | null>(null);
   const [selectedAnalysis, setSelectedAnalysis] = useState<string>("classify"); // Default selection
-  const [hasGalleryPermission, setHasGalleryPermission] = useState<
-    boolean | null
-  >(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<
-    boolean | null
-  >(null);
+  const [hasGalleryPermission, setHasGalleryPermission] = useState<boolean | null>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [positionScore, setPositionScore] = useState<number | null>(null);
+  const [confidence, setConfidence] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Backend URLs (update these URLs as needed)
@@ -40,8 +32,7 @@ export default function ImagePickerScreen() {
 
   useEffect(() => {
     (async () => {
-      const galleryStatus =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
       setHasGalleryPermission(galleryStatus.status === "granted");
 
       const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
@@ -89,71 +80,63 @@ export default function ImagePickerScreen() {
     }
   };
 
+  const getPositionLabel = (position_score: number): string => {
+    if (position_score < -0.5) return "Far Left";
+    if (position_score < -0.1) return "Left";
+    if (position_score < 0.1) return "Center";
+    if (position_score < 0.5) return "Right";
+    return "Far Right";
+  };
+  
   // Analyze image based on selected analysis option
   const analyzeImage = async () => {
     if (!imageUri || !imageBase64) {
       Alert.alert("No image selected", "Please select an image first.");
       return;
     }
-
-    setIsLoading(true);
+  
+    setIsLoading(true); // Start loading
     const selectedUrl = BACKEND_URLS[selectedAnalysis];
-
+  
     try {
       const response = await axios.post(
         selectedUrl,
         { image: imageBase64, mimeType: "image/jpeg" },
         { headers: { "Content-Type": "application/json" } }
       );
-
+  
       console.log(`${selectedAnalysis} Response:`, response.data);
-
-      // Check response format based on expected endpoints
+  
       if (response.data?.position_score !== undefined) {
-        const resultText = `Position: [-1, 1] ${response.data.position_score.toFixed(
-          2
-        )}\nConfidence: ${response.data.confidence.toFixed(2)}%`;
+        setPositionScore(response.data.position_score);
+        setConfidence(response.data.confidence);
+  
+        const resultText = `Position: ${getPositionLabel(response.data.position_score)} (${response.data.position_score.toFixed(2)})\nConfidence: ${response.data.confidence.toFixed(2)}%`;
         setResponseText(resultText);
-        Alert.alert(
-          `${
-            ANALYSIS_OPTIONS.find((o) => o.value === selectedAnalysis)?.label
-          } Result`,
-          resultText
-        );
       } else if (response.data?.predicted_class) {
-        const resultText = `Predicted Class: ${
-          response.data.predicted_class
-        }\nConfidence: ${response.data.confidence.toFixed(2)}%`;
+        const resultText = `Predicted Class: ${response.data.predicted_class}\nConfidence: ${response.data.confidence.toFixed(2)}%`;
         setResponseText(resultText);
-        Alert.alert(
-          `${
-            ANALYSIS_OPTIONS.find((o) => o.value === selectedAnalysis)?.label
-          } Result`,
-          resultText
-        );
       } else {
-        Alert.alert("Error", "Unexpected response from backend. Check logs.");
+        Alert.alert("Error", "Unexpected response from backend.");
       }
-    } catch (error: unknown) {
+    } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error("Upload Error:", error.response?.data || error.message);
-        Alert.alert(
-          "Error",
-          `Failed to analyze image: ${
-            error.response?.data?.error || error.message
-          }`
-        );
+        Alert.alert("Error", `Failed to analyze image: ${error.response?.data?.error || error.message}`);
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); 
     }
   };
+  
 
   // Reupload resets image and response state
   const reuploadImage = () => {
     setImageUri(null);
     setImageBase64(null);
     setResponseText(null);
+    setPositionScore(null);
+    setConfidence(null);
   };
 
   return (
@@ -176,28 +159,18 @@ export default function ImagePickerScreen() {
         <>
           {/* Dropdown to select analysis type */}
           <View style={styles.dropdownContainer}>
-            <Picker
-              selectedValue={selectedAnalysis}
+            <Picker 
+              selectedValue={selectedAnalysis} 
               onValueChange={(itemValue) => setSelectedAnalysis(itemValue)}
             >
               {ANALYSIS_OPTIONS.map((option) => (
-                <Picker.Item
-                  key={option.value}
-                  label={option.label}
-                  value={option.value}
-                />
+                <Picker.Item key={option.value} label={option.label} value={option.value} />
               ))}
             </Picker>
           </View>
 
           {/* Loading indicator */}
-          {isLoading && (
-            <ActivityIndicator
-              size="large"
-              color="#0000ff"
-              style={styles.loader}
-            />
-          )}
+          {isLoading && <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />}
 
           {/* Analyze and Reupload Buttons */}
           {!isLoading && (
@@ -210,17 +183,29 @@ export default function ImagePickerScreen() {
               </View>
             </View>
           )}
+
+          {/* Position Indicator & Confidence Bar */}
+          {positionScore !== null && (
+            <View style={styles.spectrumContainer}>
+              <View style={[styles.spectrumFill, { width: `${((positionScore + 1) / 2) * 100}%` }]} />
+              <Text style={styles.positionLabel}>
+                Position: {getPositionLabel(positionScore)} ({positionScore.toFixed(2)})
+              </Text>
+              <Text>Confidence: {confidence?.toFixed(2)}%</Text>
+            </View>
+          )}
         </>
       )}
 
+      {/* Response Text */}
       {responseText && (
         <View style={styles.responseContainer}>
           <Text style={styles.responseText}>{responseText}</Text>
         </View>
       )}
     </View>
-  );
-}
+  ); 
+} 
 
 const styles = StyleSheet.create({
   container: {
@@ -267,5 +252,25 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 20,
+  },
+  spectrumContainer: { 
+    width: "80%", 
+    height: 20, 
+    backgroundColor: "#ddd", 
+    borderRadius: 10, 
+    overflow: "hidden", 
+    marginTop: 10 
+  },
+
+  spectrumFill: { 
+    height: "100%", 
+    backgroundColor: "orange" 
+  },
+
+  positionLabel: { 
+    textAlign: "center", 
+    marginTop: 5, 
+    fontSize: 16, 
+    fontWeight: "bold" 
   },
 });
