@@ -1,22 +1,29 @@
-
 import React, { useState, useEffect } from "react";
 import {
-  View, Button, Image, StyleSheet, Alert, Text, ActivityIndicator,
+  View,
+  Button,
+  Image,
+  StyleSheet,
+  Alert,
+  Text,
+  ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
-import { Picker } from "@react-native-picker/picker";
 
 export default function ImagePickerScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [responseText, setResponseText] = useState<string | null>(null);
-  const [selectedAnalysis, setSelectedAnalysis] = useState<string>("classify"); // Default selection
-  const [hasGalleryPermission, setHasGalleryPermission] = useState<boolean | null>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [positionScore, setPositionScore] = useState<number | null>(null);
   const [confidence, setConfidence] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [hasGalleryPermission, setHasGalleryPermission] = useState<
+    boolean | null
+  >(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<
+    boolean | null
+  >(null);
 
   // Backend URLs (update these URLs as needed)
   const BACKEND_URLS: { [key: string]: string } = {
@@ -25,15 +32,10 @@ export default function ImagePickerScreen() {
     graphite_walnut: "http://localhost:3050/predict_graphite", // Graphite walnut regression
   };
 
-  const ANALYSIS_OPTIONS = [
-    { label: "Classify Image", value: "classify" },
-    { label: "Analyze Medium Cherry", value: "medium_cherry" },
-    { label: "Analyze Graphite Walnut", value: "graphite_walnut" },
-  ];
-
   useEffect(() => {
     (async () => {
-      const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const galleryStatus =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       setHasGalleryPermission(galleryStatus.status === "granted");
 
       const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
@@ -81,57 +83,105 @@ export default function ImagePickerScreen() {
     }
   };
 
-  const getPositionLabel = (position_score: number): string => {
-    if (position_score < -0.5) return "Far Left";
-    if (position_score < -0.1) return "Left";
-    if (position_score < 0.1) return "Center";
-    if (position_score < 0.5) return "Right";
+  // Helper: Get a label based on the regression score
+  const getPositionLabel = (score: number): string => {
+    if (score < -0.5) return "Far Left";
+    if (score < -0.1) return "Left";
+    if (score < 0.1) return "Center";
+    if (score < 0.5) return "Right";
     return "Far Right";
   };
-  
-  // Analyze image based on selected analysis option
+
+  // Analyze image: first classify, then automatically run the appropriate regression model
   const analyzeImage = async () => {
     if (!imageUri || !imageBase64) {
       Alert.alert("No image selected", "Please select an image first.");
       return;
     }
-  
-    setIsLoading(true); // Start loading
-    const selectedUrl = BACKEND_URLS[selectedAnalysis];
-  
+
+    setIsLoading(true);
     try {
-      const response = await axios.post(
-        selectedUrl,
+      // 1. Run classification model
+      const classResponse = await axios.post(
+        BACKEND_URLS.classify,
         { image: imageBase64, mimeType: "image/jpeg" },
         { headers: { "Content-Type": "application/json" } }
       );
-  
-      console.log(`${selectedAnalysis} Response:`, response.data);
-  
-      if (response.data?.position_score !== undefined) {
-        setPositionScore(response.data.position_score);
-        setConfidence(response.data.confidence);
-  
-        const resultText = `Position: ${getPositionLabel(response.data.position_score)} (${response.data.position_score.toFixed(2)})\nConfidence: ${response.data.confidence.toFixed(2)}%`;
-        setResponseText(resultText);
-      } else if (response.data?.predicted_class) {
-        const resultText = `Predicted Class: ${response.data.predicted_class}\nConfidence: ${response.data.confidence.toFixed(2)}%`;
-        setResponseText(resultText);
-      } else {
-        Alert.alert("Error", "Unexpected response from backend.");
+
+      if (!classResponse.data?.predicted_class) {
+        Alert.alert(
+          "Error",
+          "Unexpected classification response from backend."
+        );
+        return;
       }
+
+      // Normalize the predicted class: lowercase and remove spaces
+      const predictedClass: string = classResponse.data.predicted_class
+        .toLowerCase()
+        .replace(/\s+/g, "");
+      const classConfidence: number = classResponse.data.confidence;
+      console.log("Classification Result:", predictedClass, classConfidence);
+
+      // 2. Decide which regression model to call based on classification result
+      let regressionUrl: string | undefined;
+      if (predictedClass.includes("mediumcherry")) {
+        regressionUrl = BACKEND_URLS.medium_cherry;
+      } else if (predictedClass.includes("graphitewalnut")) {
+        regressionUrl = BACKEND_URLS.graphite_walnut;
+      } else {
+        // If classification returns an unknown type, just display classification results.
+        const resultText = `Predicted Class: ${
+          classResponse.data.predicted_class
+        }\nConfidence: ${classConfidence.toFixed(2)}%`;
+        setResponseText(resultText);
+        Alert.alert("Classification Result", resultText);
+        return;
+      }
+
+      // 3. Run the regression model
+      const regResponse = await axios.post(
+        regressionUrl,
+        { image: imageBase64, mimeType: "image/jpeg" },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (regResponse.data?.position_score === undefined) {
+        Alert.alert("Error", "Unexpected regression response from backend.");
+        return;
+      }
+
+      const regPositionScore: number = regResponse.data.position_score;
+      const regConfidence: number = regResponse.data.confidence;
+      setPositionScore(regPositionScore);
+      setConfidence(regConfidence);
+
+      // 4. Build result text combining classification and regression results
+      const resultText =
+        `Predicted Class: ${classResponse.data.predicted_class}\n` +
+        `Classification Confidence: ${classConfidence.toFixed(2)}%\n\n` +
+        `Regression Position: ${getPositionLabel(
+          regPositionScore
+        )} (${regPositionScore.toFixed(2)})\n` +
+        `Regression Confidence: ${regConfidence.toFixed(2)}%`;
+      setResponseText(resultText);
+      Alert.alert("Analysis Result", resultText);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.error("Upload Error:", error.response?.data || error.message);
-        Alert.alert("Error", `Failed to analyze image: ${error.response?.data?.error || error.message}`);
+        console.error("Analyze Error:", error.response?.data || error.message);
+        Alert.alert(
+          "Error",
+          `Failed to analyze image: ${
+            error.response?.data?.error || error.message
+          }`
+        );
       }
     } finally {
-      setIsLoading(false); 
+      setIsLoading(false);
     }
   };
-  
 
-  // Reupload resets image and response state
+  // Reupload: resets image and response state
   const reuploadImage = () => {
     setImageUri(null);
     setImageBase64(null);
@@ -158,20 +208,14 @@ export default function ImagePickerScreen() {
 
       {imageUri && (
         <>
-          {/* Dropdown to select analysis type */}
-          <View style={styles.dropdownContainer}>
-            <Picker 
-              selectedValue={selectedAnalysis} 
-              onValueChange={(itemValue) => setSelectedAnalysis(itemValue)}
-            >
-              {ANALYSIS_OPTIONS.map((option) => (
-                <Picker.Item key={option.value} label={option.label} value={option.value} />
-              ))}
-            </Picker>
-          </View>
-
           {/* Loading indicator */}
-          {isLoading && <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />}
+          {isLoading && (
+            <ActivityIndicator
+              size="large"
+              color="#0000ff"
+              style={styles.loader}
+            />
+          )}
 
           {/* Analyze and Reupload Buttons */}
           {!isLoading && (
@@ -185,12 +229,18 @@ export default function ImagePickerScreen() {
             </View>
           )}
 
-          {/* Position Indicator & Confidence Bar */}
+          {/* Spectrum Bar: shows position and confidence if regression was run */}
           {positionScore !== null && (
             <View style={styles.spectrumContainer}>
-              <View style={[styles.spectrumFill, { width: `${((positionScore + 1) / 2) * 100}%` }]} />
+              <View
+                style={[
+                  styles.spectrumFill,
+                  { width: `${((positionScore + 1) / 2) * 100}%` },
+                ]}
+              />
               <Text style={styles.positionLabel}>
-                Position: {getPositionLabel(positionScore)} ({positionScore.toFixed(2)})
+                Position: {getPositionLabel(positionScore)} (
+                {positionScore.toFixed(2)})
               </Text>
               <Text>Confidence: {confidence?.toFixed(2)}%</Text>
             </View>
@@ -205,8 +255,8 @@ export default function ImagePickerScreen() {
         </View>
       )}
     </View>
-  ); 
-} 
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -222,14 +272,6 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     marginVertical: 10,
-  },
-  dropdownContainer: {
-    width: 250,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    backgroundColor: "#fff",
   },
   buttonRow: {
     flexDirection: "row",
@@ -254,24 +296,22 @@ const styles = StyleSheet.create({
   loader: {
     marginTop: 20,
   },
-  spectrumContainer: { 
-    width: "80%", 
-    height: 20, 
-    backgroundColor: "#ddd", 
-    borderRadius: 10, 
-    overflow: "hidden", 
-    marginTop: 10 
+  spectrumContainer: {
+    width: "80%",
+    height: 20,
+    backgroundColor: "#ddd",
+    borderRadius: 10,
+    overflow: "hidden",
+    marginTop: 10,
   },
-
-  spectrumFill: { 
-    height: "100%", 
-    backgroundColor: "orange" 
+  spectrumFill: {
+    height: "100%",
+    backgroundColor: "orange",
   },
-
-  positionLabel: { 
-    textAlign: "center", 
-    marginTop: 5, 
-    fontSize: 16, 
-    fontWeight: "bold" 
+  positionLabel: {
+    textAlign: "center",
+    marginTop: 5,
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
