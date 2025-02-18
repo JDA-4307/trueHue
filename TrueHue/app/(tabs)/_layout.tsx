@@ -1,7 +1,7 @@
 import React from "react";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Link, Tabs } from "expo-router";
-import { Pressable } from "react-native";
+import { Pressable, Image } from "react-native";
 
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
@@ -30,8 +30,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Tab One",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: "Home",
+          tabBarIcon: ({ color, size }) => (
+            <Image
+              source={require("../../assets/images/home_icon.png")}
+              style={{ width: size, height: size, tintColor: color }}
+              resizeMode="contain"
+            />
+          ),
           headerRight: () => (
             <Link href="/modal" asChild>
               <Pressable>
@@ -51,15 +57,27 @@ export default function TabLayout() {
       <Tabs.Screen
         name="two"
         options={{
-          title: "Tab two",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: "Reports",
+          tabBarIcon: ({ color, size }) => (
+            <Image
+              source={require("../../assets/images/report_icon.png")}
+              style={{ width: size, height: size, tintColor: color }}
+              resizeMode="contain"
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="image-picker"
         options={{
           title: "Image Picker",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <Image
+              source={require("../../assets/images/photo_icon.png")}
+              style={{ width: size, height: size, tintColor: color }}
+              resizeMode="contain"
+            />
+          ),
         }}
       />
     </Tabs>

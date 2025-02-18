@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Image } from "react-native";
 
 import EditScreenInfo from "@/components/EditScreenInfo";
 import { Text, View } from "@/components/Themed";
@@ -13,6 +13,13 @@ export default function TabOneScreen() {
         darkColor="rgba(255,255,255,0.1)"
       />
       <EditScreenInfo path="app/(tabs)/index.tsx" />
+      <View style = {styles.logo}>
+      <Image 
+        source = {require("../../assets/images/steelcase.png")}
+        style = {styles.logo}
+        resizeMode="contain" 
+        />
+        </View>
     </View>
   );
 }
@@ -32,4 +39,10 @@ const styles = StyleSheet.create({
     height: 1,
     width: "80%",
   },
+  logo: {
+    alignItems: "center",
+    //justifyContent: "center",
+    width: "90%",
+    marginBottom: "50%"
+  }
 });
