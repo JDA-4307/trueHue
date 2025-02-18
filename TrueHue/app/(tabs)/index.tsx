@@ -41,8 +41,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     alignItems: "center",
-    //justifyContent: "center",
-    width: "90%",
-    marginBottom: "50%"
+    justifyContent: "center",
+    width: "80%",
   }
 });
