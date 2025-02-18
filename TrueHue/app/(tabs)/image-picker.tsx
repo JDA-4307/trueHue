@@ -85,11 +85,11 @@ export default function ImagePickerScreen() {
 
   // Helper: Get a label based on the regression score
   const getPositionLabel = (score: number): string => {
-    if (score < -0.5) return "Far Left";
-    if (score < -0.1) return "Left";
-    if (score < 0.1) return "Center";
-    if (score < 0.5) return "Right";
-    return "Far Right";
+    if (score < -0.5) return "Very Dark";
+    if (score < -0.1) return "Dark";
+    if (score < 0.1) return "Well In Range";
+    if (score < 0.5) return "Light";
+    return "Very Light";
   };
 
   // Analyze image: first classify, then automatically run the appropriate regression model
