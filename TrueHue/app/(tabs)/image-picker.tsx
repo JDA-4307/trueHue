@@ -7,6 +7,8 @@ import {
   Alert,
   Text,
   ActivityIndicator,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
@@ -24,76 +26,97 @@ export default function ImagePickerScreen() {
   const [hasCameraPermission, setHasCameraPermission] = useState<
     boolean | null
   >(null);
+  const [showPickerModal, setShowPickerModal] = useState<boolean>(false);
 
   // Backend URLs (update these URLs as needed)
-  const BACKEND_URLS: { [key: string]: string } = {
-    classify: "http://localhost:3050/predict_tflite", // TFLite classification
-    medium_cherry: "http://localhost:3050/predict_medium", // Medium cherry regression
-    graphite_walnut: "http://localhost:3050/predict_graphite", // Graphite walnut regression
+  const backendURLs: { [key: string]: string } = {
+    classify: "http://10.91.65.250:3050/predict_tflite",
+    medium_cherry: "http://10.91.65.250:3050/predict_medium",
+    graphite_walnut: "http://10.91.65.250:3050/predict_graphite",
   };
 
   useEffect(() => {
     (async () => {
-      const galleryStatus =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      setHasGalleryPermission(galleryStatus.status === "granted");
+      try {
+        const galleryStatus =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+        //console.log("Gallery permissions:", galleryStatus);
+        setHasGalleryPermission(galleryStatus.status === "granted");
 
-      const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
-      setHasCameraPermission(cameraStatus.status === "granted");
+        const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
+        //console.log("Camera permissions:", cameraStatus);
+        setHasCameraPermission(cameraStatus.status === "granted");
+      } catch (error) {
+        console.error("Error requesting permissions", error);
+      }
     })();
   }, []);
 
   // Pick image from gallery
   const pickImage = async () => {
+    console.log("pickImage called");
     if (hasGalleryPermission === false) {
+      console.log("Gallery permission not granted");
       return Alert.alert("Permission for media access not granted.");
     }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-      base64: true,
-    });
-
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImageUri(result.assets[0].uri);
-      setImageBase64(result.assets[0].base64 || null);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+        base64: true,
+      });
+      //console.log("ImagePicker result:", result);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        //console.log("Image selected:", result.assets[0].uri);
+        setImageUri(result.assets[0].uri);
+        setImageBase64(result.assets[0].base64 || null);
+      }
+    } catch (error) {
+      console.error("Error picking image", error);
+      Alert.alert("Error", "Something went wrong while picking the image.");
     }
   };
 
   // Take picture with camera
   const takePicture = async () => {
+    console.log("takePicture called");
     if (hasCameraPermission === false) {
+      console.log("Camera permission not granted");
       return Alert.alert("Permission for camera access is not granted.");
     }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-      base64: true,
-    });
-
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImageUri(result.assets[0].uri);
-      setImageBase64(result.assets[0].base64 || null);
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+        base64: true,
+      });
+      //console.log("Camera result:", result);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        //console.log("Picture taken:", result.assets[0].uri);
+        setImageUri(result.assets[0].uri);
+        setImageBase64(result.assets[0].base64 || null);
+      }
+    } catch (error) {
+      console.error("Error taking picture", error);
+      Alert.alert("Error", "Something went wrong while taking the picture.");
     }
   };
 
-  // Helper: Get a label based on the regression score
-  const getPositionLabel = (score: number): string => {
-    if (score < -0.5) return "Very Dark";
-    if (score < -0.1) return "Dark";
-    if (score < 0.1) return "Well In Range";
-    if (score < 0.5) return "Light";
-    return "Very Light";
+  const getPositionLabel = (position_score: number): string => {
+    if (position_score < -0.5) return "Far Left";
+    if (position_score < -0.1) return "Left";
+    if (position_score < 0.1) return "Center";
+    if (position_score < 0.5) return "Right";
+    return "Far Right";
   };
 
-  // Analyze image: first classify, then automatically run the appropriate regression model
+  // Analyze image: first classify, then run appropriate regression model
   const analyzeImage = async () => {
+    console.log("analyzeImage called");
     if (!imageUri || !imageBase64) {
       Alert.alert("No image selected", "Please select an image first.");
       return;
@@ -103,11 +126,11 @@ export default function ImagePickerScreen() {
     try {
       // 1. Run classification model
       const classResponse = await axios.post(
-        BACKEND_URLS.classify,
+        backendURLs.classify,
         { image: imageBase64, mimeType: "image/jpeg" },
         { headers: { "Content-Type": "application/json" } }
       );
-
+      console.log("Classification response:", classResponse.data);
       if (!classResponse.data?.predicted_class) {
         Alert.alert(
           "Error",
@@ -115,22 +138,24 @@ export default function ImagePickerScreen() {
         );
         return;
       }
-
-      // Normalize the predicted class: lowercase and remove spaces
       const predictedClass: string = classResponse.data.predicted_class
         .toLowerCase()
         .replace(/\s+/g, "");
       const classConfidence: number = classResponse.data.confidence;
-      console.log("Classification Result:", predictedClass, classConfidence);
+      console.log(
+        "Predicted class:",
+        predictedClass,
+        "Confidence:",
+        classConfidence
+      );
 
-      // 2. Decide which regression model to call based on classification result
+      // 2. Decide which regression model to call
       let regressionUrl: string | undefined;
       if (predictedClass.includes("mediumcherry")) {
-        regressionUrl = BACKEND_URLS.medium_cherry;
+        regressionUrl = backendURLs.medium_cherry;
       } else if (predictedClass.includes("graphitewalnut")) {
-        regressionUrl = BACKEND_URLS.graphite_walnut;
+        regressionUrl = backendURLs.graphite_walnut;
       } else {
-        // If classification returns an unknown type, just display classification results.
         const resultText = `Predicted Class: ${
           classResponse.data.predicted_class
         }\nConfidence: ${classConfidence.toFixed(2)}%`;
@@ -139,24 +164,23 @@ export default function ImagePickerScreen() {
         return;
       }
 
-      // 3. Run the regression model
+      // 3. Run regression model
       const regResponse = await axios.post(
         regressionUrl,
         { image: imageBase64, mimeType: "image/jpeg" },
         { headers: { "Content-Type": "application/json" } }
       );
-
+      //console.log("Regression response:", regResponse.data);
       if (regResponse.data?.position_score === undefined) {
         Alert.alert("Error", "Unexpected regression response from backend.");
         return;
       }
-
       const regPositionScore: number = regResponse.data.position_score;
       const regConfidence: number = regResponse.data.confidence;
       setPositionScore(regPositionScore);
       setConfidence(regConfidence);
 
-      // 4. Build result text combining classification and regression results
+      // 4. Build result text
       const resultText =
         `Predicted Class: ${classResponse.data.predicted_class}\n` +
         `Classification Confidence: ${classConfidence.toFixed(2)}%\n\n` +
@@ -164,6 +188,7 @@ export default function ImagePickerScreen() {
           regPositionScore
         )} (${regPositionScore.toFixed(2)})\n` +
         `Regression Confidence: ${regConfidence.toFixed(2)}%`;
+      console.log("Final result text:", resultText);
       setResponseText(resultText);
       Alert.alert("Analysis Result", resultText);
     } catch (error) {
@@ -175,14 +200,18 @@ export default function ImagePickerScreen() {
             error.response?.data?.error || error.message
           }`
         );
+      } else {
+        console.error("Analyze Error:", error);
+        Alert.alert("Error", "An unexpected error occurred during analysis.");
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Reupload: resets image and response state
+  // Reupload: reset image and response state
   const reuploadImage = () => {
+    console.log("Reuploading image");
     setImageUri(null);
     setImageBase64(null);
     setResponseText(null);
@@ -192,23 +221,60 @@ export default function ImagePickerScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Show image selection buttons only if no image has been picked */}
       {!imageUri && (
         <>
-          <View style={styles.buttonContainer}>
-            <Button title="Select Image" onPress={pickImage} />
-          </View>
-          <View style={styles.buttonContainer}>
-            <Button title="Take Picture" onPress={takePicture} />
-          </View>
+          <TouchableOpacity
+            style={styles.unifiedButton}
+            onPress={() => {
+              console.log("Unified button pressed, opening modal");
+              setShowPickerModal(true);
+            }}
+          >
+            <Text style={styles.unifiedButtonText}>Upload Image</Text>
+          </TouchableOpacity>
+          <Modal
+            transparent={true}
+            animationType="slide"
+            visible={showPickerModal}
+            onRequestClose={() => {
+              console.log("Modal closed");
+              setShowPickerModal(false);
+            }}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Select Image Source</Text>
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={pickImage}
+                >
+                  <Text style={styles.modalButtonText}>
+                    Select from Gallery
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={takePicture}
+                >
+                  <Text style={styles.modalButtonText}>Take a Picture</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => {
+                    console.log("Cancel pressed");
+                    setShowPickerModal(false);
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
         </>
       )}
-
       {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
-
       {imageUri && (
         <>
-          {/* Loading indicator */}
           {isLoading && (
             <ActivityIndicator
               size="large"
@@ -216,8 +282,6 @@ export default function ImagePickerScreen() {
               style={styles.loader}
             />
           )}
-
-          {/* Analyze and Reupload Buttons */}
           {!isLoading && (
             <View style={styles.buttonRow}>
               <View style={styles.flexButton}>
@@ -228,8 +292,6 @@ export default function ImagePickerScreen() {
               </View>
             </View>
           )}
-
-          {/* Spectrum Bar: shows position and confidence if regression was run */}
           {positionScore !== null && (
             <View style={styles.spectrumContainer}>
               <View
@@ -247,8 +309,6 @@ export default function ImagePickerScreen() {
           )}
         </>
       )}
-
-      {/* Response Text */}
       {responseText && (
         <View style={styles.responseContainer}>
           <Text style={styles.responseText}>{responseText}</Text>
@@ -265,12 +325,53 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
+  unifiedButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    marginVertical: 10,
+  },
+  unifiedButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  modalButton: {
+    paddingVertical: 15,
+    width: "100%",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
+  cancelButton: {
+    borderBottomWidth: 0,
+    marginTop: 10,
+  },
+  modalButtonText: {
+    fontSize: 18,
+    color: "#007AFF",
+  },
   image: {
     width: 300,
     height: 300,
-    marginVertical: 10,
-  },
-  buttonContainer: {
     marginVertical: 10,
   },
   buttonRow: {
@@ -281,7 +382,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   flexButton: {
-    flex: 0,
     marginHorizontal: 5,
     minWidth: 140,
   },
