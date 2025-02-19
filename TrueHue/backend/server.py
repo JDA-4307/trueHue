@@ -197,4 +197,4 @@ def predict_medium():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(port=3050, debug=True)
+    app.run(host="10.2.82.117", port=3050, debug=True)

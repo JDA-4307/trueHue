@@ -27,9 +27,9 @@ export default function ImagePickerScreen() {
 
   // Backend URLs (update these URLs as needed)
   const BACKEND_URLS: { [key: string]: string } = {
-    classify: "http://localhost:3050/predict_tflite", // TFLite classification
-    medium_cherry: "http://localhost:3050/predict_medium", // Medium cherry regression
-    graphite_walnut: "http://localhost:3050/predict_graphite", // Graphite walnut regression
+    classify: "http://10.2.82.117:3050/predict_tflite", // TFLite classification
+    medium_cherry: "http://10.2.82.117:3050/predict_medium", // Medium cherry regression
+    graphite_walnut: "http://10.2.82.117:3050/predict_graphite", // Graphite walnut regression
   };
 
   useEffect(() => {
@@ -131,9 +131,7 @@ export default function ImagePickerScreen() {
         regressionUrl = BACKEND_URLS.graphite_walnut;
       } else {
         // If classification returns an unknown type, just display classification results.
-        const resultText = `Predicted Class: ${
-          classResponse.data.predicted_class
-        }\nConfidence: ${classConfidence.toFixed(2)}%`;
+        const resultText = `Predicted Class: ${classResponse.data.predicted_class}`;
         setResponseText(resultText);
         Alert.alert("Classification Result", resultText);
         return;
@@ -156,14 +154,12 @@ export default function ImagePickerScreen() {
       setPositionScore(regPositionScore);
       setConfidence(regConfidence);
 
-      // 4. Build result text combining classification and regression results
+      // 4. Build result text combining classification and regression results (without confidence)
       const resultText =
         `Predicted Class: ${classResponse.data.predicted_class}\n` +
-        `Classification Confidence: ${classConfidence.toFixed(2)}%\n\n` +
         `Regression Position: ${getPositionLabel(
           regPositionScore
-        )} (${regPositionScore.toFixed(2)})\n` +
-        `Regression Confidence: ${regConfidence.toFixed(2)}%`;
+        )} (${regPositionScore.toFixed(2)})`;
       setResponseText(resultText);
       Alert.alert("Analysis Result", resultText);
     } catch (error) {
@@ -229,7 +225,7 @@ export default function ImagePickerScreen() {
             </View>
           )}
 
-          {/* Spectrum Bar: shows position and confidence if regression was run */}
+          {/* Spectrum Bar: shows position if regression was run */}
           {positionScore !== null && (
             <View style={styles.spectrumContainer}>
               <View
@@ -242,7 +238,6 @@ export default function ImagePickerScreen() {
                 Position: {getPositionLabel(positionScore)} (
                 {positionScore.toFixed(2)})
               </Text>
-              <Text>Confidence: {confidence?.toFixed(2)}%</Text>
             </View>
           )}
         </>
