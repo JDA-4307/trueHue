@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
+import { BACKEND_URLS } from "../../config"; // Import from config
 
 export default function ImagePickerScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -25,12 +26,7 @@ export default function ImagePickerScreen() {
     boolean | null
   >(null);
 
-  // Backend URLs (update these URLs as needed)
-  const BACKEND_URLS: { [key: string]: string } = {
-    classify: "http://localhost:3050/predict_tflite", // TFLite classification
-    medium_cherry: "http://localhost:3050/predict_medium", // Medium cherry regression
-    graphite_walnut: "http://localhost:3050/predict_graphite", // Graphite walnut regression
-  };
+  // Now using BACKEND_URLS from config instead of hardcoded values
 
   useEffect(() => {
     (async () => {
