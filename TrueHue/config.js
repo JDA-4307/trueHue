@@ -1,4 +1,3 @@
-// config.js
 import Constants from "expo-constants";
 
 // Get the API URL from environment variables or use default
@@ -11,9 +10,15 @@ const API_URL =
 */
 
 export const BACKEND_URLS = {
-  classify: `${API_URL}/predict_tflite`, // TFLite classification
+  classify: `${API_URL}/predict`, // TFLite classification
   medium_cherry: `${API_URL}/predict_medium`, // Medium cherry regression
   graphite_walnut: `${API_URL}/predict_graphite`, // Graphite walnut regression
+  // New endpoints
+  generateFullReport: `${API_URL}/generate-full-report`, // Full analysis report
+  binary_graphite_walnut: `${API_URL}/predict/binary/graphite_walnut`, // Binary classification
+  multiclass_graphite_walnut: `${API_URL}/predict/multiclass/graphite_walnut`, // Multiclass classification
+  regression_graphite_walnut: `${API_URL}/predict/regression/graphite_walnut`, // Regression model
+  baseUrl: API_URL, // Base URL for constructing other endpoints
 };
 
 export default {

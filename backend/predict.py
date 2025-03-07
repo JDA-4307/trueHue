@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 print("importing model")
 # Path to TFLite model
-tflite_model_path = './model.tflite'
+tflite_model_path = './assets/models/model.tflite'
 
 
 # Load the TFLite model (no Core ML delegate needed; Metal will be used automatically)

@@ -7,6 +7,7 @@ import {
   Alert,
   Text,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
@@ -19,6 +20,8 @@ export default function ImagePickerScreen() {
   const [positionScore, setPositionScore] = useState<number | null>(null);
   const [confidence, setConfidence] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState<boolean>(false);
+  const [reportData, setReportData] = useState<any>(null);
   const [hasGalleryPermission, setHasGalleryPermission] = useState<
     boolean | null
   >(null);
@@ -56,6 +59,11 @@ export default function ImagePickerScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setImageUri(result.assets[0].uri);
       setImageBase64(result.assets[0].base64 || null);
+      // Reset previous results
+      setReportData(null);
+      setResponseText(null);
+      setPositionScore(null);
+      setConfidence(null);
     }
   };
 
@@ -76,6 +84,11 @@ export default function ImagePickerScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setImageUri(result.assets[0].uri);
       setImageBase64(result.assets[0].base64 || null);
+      // Reset previous results
+      setReportData(null);
+      setResponseText(null);
+      setPositionScore(null);
+      setConfidence(null);
     }
   };
 
@@ -119,6 +132,16 @@ export default function ImagePickerScreen() {
       const classConfidence: number = classResponse.data.confidence;
       console.log("Classification Result:", predictedClass, classConfidence);
 
+      // If classification returns an unknown type, just display classification results.
+      const resultText = `Predicted Class: ${
+        classResponse.data.predicted_class
+      }\nConfidence: ${classConfidence.toFixed(2)}%`;
+      setResponseText(resultText);
+      Alert.alert("Classification Result", resultText);
+      return;
+
+      /** 
+      
       // 2. Decide which regression model to call based on classification result
       let regressionUrl: string | undefined;
       if (predictedClass.includes("mediumcherry")) {
@@ -134,6 +157,7 @@ export default function ImagePickerScreen() {
         Alert.alert("Classification Result", resultText);
         return;
       }
+        
 
       // 3. Run the regression model
       const regResponse = await axios.post(
@@ -160,8 +184,10 @@ export default function ImagePickerScreen() {
           regPositionScore
         )} (${regPositionScore.toFixed(2)})\n` +
         `Regression Confidence: ${regConfidence.toFixed(2)}%`;
+        
       setResponseText(resultText);
       Alert.alert("Analysis Result", resultText);
+      */
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error("Analyze Error:", error.response?.data || error.message);
@@ -177,6 +203,66 @@ export default function ImagePickerScreen() {
     }
   };
 
+  // Generate Full Report
+  const generateFullReport = async () => {
+    if (!imageUri || !imageBase64) {
+      Alert.alert("No image selected", "Please select an image first.");
+      return;
+    }
+
+    setIsGeneratingReport(true);
+    try {
+      // Call the full report endpoint
+      const response = await axios.post(
+        BACKEND_URLS.generateFullReport ||
+          `${BACKEND_URLS.baseUrl}/generate-full-report`,
+        {
+          image: imageBase64,
+          mimeType: "image/jpeg",
+          colorSpace: "lab", // Using LAB color space for better wood color detection
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (!response.data || response.data.error) {
+        Alert.alert(
+          "Error",
+          `Failed to generate report: ${
+            response.data?.error || "Unknown error"
+          }`
+        );
+        return;
+      }
+
+      // Store the full report data
+      setReportData(response.data);
+
+      // Build a simple summary for the alert
+      const woodType = response.data.wood_type?.classification || "Unknown";
+      const summary = `Wood Type: ${woodType}\nConfidence: ${response.data.wood_type?.confidence.toFixed(
+        2
+      )}%`;
+
+      // Show a brief alert with the main finding
+      Alert.alert(
+        "Report Generated",
+        summary + "\n\nSee below for full details"
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Report Error:", error.response?.data || error.message);
+        Alert.alert(
+          "Error",
+          `Failed to generate report: ${
+            error.response?.data?.error || error.message
+          }`
+        );
+      }
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   // Reupload: resets image and response state
   const reuploadImage = () => {
     setImageUri(null);
@@ -184,77 +270,207 @@ export default function ImagePickerScreen() {
     setResponseText(null);
     setPositionScore(null);
     setConfidence(null);
+    setReportData(null);
+  };
+
+  // Format specialized test results for display
+  const renderSpecializedTests = () => {
+    if (
+      !reportData?.specialized_tests ||
+      Object.keys(reportData.specialized_tests).length === 0
+    ) {
+      return null;
+    }
+
+    return (
+      <View style={styles.specializedTestsContainer}>
+        <Text style={styles.sectionHeader}>Specialized Tests</Text>
+
+        {reportData.specialized_tests.binary && (
+          <View style={styles.testSection}>
+            <Text style={styles.testHeader}>Binary Classification</Text>
+            <Text>
+              Result: {reportData.specialized_tests.binary.predicted_class}
+            </Text>
+            <Text>
+              Confidence:{" "}
+              {reportData.specialized_tests.binary.confidence.toFixed(2)}%
+            </Text>
+          </View>
+        )}
+
+        {reportData.specialized_tests.multiclass && (
+          <View style={styles.testSection}>
+            <Text style={styles.testHeader}>Multiclass Classification</Text>
+            <Text>
+              Result: {reportData.specialized_tests.multiclass.predicted_class}
+            </Text>
+            <Text>
+              Confidence:{" "}
+              {reportData.specialized_tests.multiclass.confidence.toFixed(2)}%
+            </Text>
+          </View>
+        )}
+
+        {reportData.specialized_tests.regression && (
+          <View style={styles.testSection}>
+            <Text style={styles.testHeader}>Regression Analysis</Text>
+            <Text>
+              Value:{" "}
+              {reportData.specialized_tests.regression.predicted_value.toFixed(
+                4
+              )}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
   };
 
   return (
-    <View style={styles.container}>
-      {/* Show image selection buttons only if no image has been picked */}
-      {!imageUri && (
-        <>
-          <View style={styles.buttonContainer}>
-            <Button title="Select Image" onPress={pickImage} />
-          </View>
-          <View style={styles.buttonContainer}>
-            <Button title="Take Picture" onPress={takePicture} />
-          </View>
-        </>
-      )}
-
-      {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
-
-      {imageUri && (
-        <>
-          {/* Loading indicator */}
-          {isLoading && (
-            <ActivityIndicator
-              size="large"
-              color="#0000ff"
-              style={styles.loader}
-            />
-          )}
-
-          {/* Analyze and Reupload Buttons */}
-          {!isLoading && (
-            <View style={styles.buttonRow}>
-              <View style={styles.flexButton}>
-                <Button title="Analyze" onPress={analyzeImage} />
-              </View>
-              <View style={styles.flexButton}>
-                <Button title="Reupload" onPress={reuploadImage} />
-              </View>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
+        {/* Show image selection buttons only if no image has been picked */}
+        {!imageUri && (
+          <>
+            <View style={styles.buttonContainer}>
+              <Button title="Select Image" onPress={pickImage} />
             </View>
-          )}
+            <View style={styles.buttonContainer}>
+              <Button title="Take Picture" onPress={takePicture} />
+            </View>
+          </>
+        )}
 
-          {/* Spectrum Bar: shows position and confidence if regression was run */}
-          {positionScore !== null && (
-            <View style={styles.spectrumContainer}>
-              <View
-                style={[
-                  styles.spectrumFill,
-                  { width: `${((positionScore + 1) / 2) * 100}%` },
-                ]}
+        {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
+
+        {imageUri && (
+          <>
+            {/* Loading indicators */}
+            {isLoading && (
+              <ActivityIndicator
+                size="large"
+                color="#0000ff"
+                style={styles.loader}
               />
-              <Text style={styles.positionLabel}>
-                Position: {getPositionLabel(positionScore)} (
-                {positionScore.toFixed(2)})
-              </Text>
-              <Text>Confidence: {confidence?.toFixed(2)}%</Text>
-            </View>
-          )}
-        </>
-      )}
+            )}
 
-      {/* Response Text */}
-      {responseText && (
-        <View style={styles.responseContainer}>
-          <Text style={styles.responseText}>{responseText}</Text>
-        </View>
-      )}
-    </View>
+            {isGeneratingReport && (
+              <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color="#ff9800" />
+                <Text style={styles.loaderText}>Generating full report...</Text>
+              </View>
+            )}
+
+            {/* Action Buttons */}
+            {!isLoading && !isGeneratingReport && (
+              <View style={styles.buttonRow}>
+                <View style={styles.flexButton}>
+                  <Button title="Analyze" onPress={analyzeImage} />
+                </View>
+                <View style={styles.flexButton}>
+                  <Button
+                    title="Full Report"
+                    onPress={generateFullReport}
+                    color="#ff9800"
+                  />
+                </View>
+                <View style={styles.flexButton}>
+                  <Button
+                    title="Reupload"
+                    onPress={reuploadImage}
+                    color="#f44336"
+                  />
+                </View>
+              </View>
+            )}
+
+            {/* Spectrum Bar: shows position and confidence if regression was run */}
+            {positionScore !== null && (
+              <View style={styles.spectrumContainer}>
+                <View
+                  style={[
+                    styles.spectrumFill,
+                    { width: `${((positionScore + 1) / 2) * 100}%` },
+                  ]}
+                />
+                <Text style={styles.positionLabel}>
+                  Position: {getPositionLabel(positionScore)} (
+                  {positionScore.toFixed(2)})
+                </Text>
+                <Text>Confidence: {confidence?.toFixed(2)}%</Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Response Text from original analysis */}
+        {responseText && (
+          <View style={styles.responseContainer}>
+            <Text style={styles.responseText}>{responseText}</Text>
+          </View>
+        )}
+
+        {/* Full Report Results */}
+        {reportData && (
+          <View style={styles.reportContainer}>
+            <Text style={styles.reportTitle}>Full Analysis Report</Text>
+
+            <View style={styles.woodTypeContainer}>
+              <Text style={styles.sectionHeader}>Wood Classification</Text>
+              <Text style={styles.woodType}>
+                {reportData.wood_type?.classification || "Unknown"}
+              </Text>
+              <Text style={styles.confidence}>
+                Confidence: {reportData.wood_type?.confidence.toFixed(2)}%
+              </Text>
+
+              {/* Probability distribution */}
+              {reportData.wood_type?.all_probabilities && (
+                <View style={styles.probabilitiesContainer}>
+                  <Text style={styles.probabilitiesHeader}>
+                    All Probabilities:
+                  </Text>
+                  {Object.entries(reportData.wood_type.all_probabilities).map(
+                    ([key, value]) => (
+                      <View key={key} style={styles.probabilityRow}>
+                        <Text style={styles.probabilityName}>{key}:</Text>
+                        <Text style={styles.probabilityValue}>
+                          {(value as number).toFixed(2)}%
+                        </Text>
+                        <View style={styles.probabilityBar}>
+                          <View
+                            style={[
+                              styles.probabilityFill,
+                              { width: `${value as number}%` },
+                            ]}
+                          />
+                        </View>
+                      </View>
+                    )
+                  )}
+                </View>
+              )}
+            </View>
+
+            {/* Specialized Tests */}
+            {renderSpecializedTests()}
+
+            {/* Color Space Info */}
+            <Text style={styles.colorSpaceInfo}>
+              Color space: {reportData.color_space_used || "rgb"}
+            </Text>
+          </View>
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     justifyContent: "center",
@@ -275,11 +491,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
     gap: 10,
+    flexWrap: "wrap",
   },
   flexButton: {
-    flex: 0,
     marginHorizontal: 5,
-    minWidth: 140,
+    minWidth: 110,
+    marginBottom: 10,
   },
   responseContainer: {
     paddingHorizontal: 20,
@@ -291,6 +508,15 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 20,
+  },
+  loaderContainer: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  loaderText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#ff9800",
   },
   spectrumContainer: {
     width: "80%",
@@ -309,5 +535,95 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 16,
     fontWeight: "bold",
+  },
+  // Report styles
+  reportContainer: {
+    marginTop: 25,
+    width: "100%",
+    backgroundColor: "#f5f5f5",
+    borderRadius: 10,
+    padding: 15,
+  },
+  reportTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 15,
+    color: "#333",
+  },
+  woodTypeContainer: {
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#333",
+  },
+  woodType: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#4a90e2",
+    marginBottom: 5,
+  },
+  confidence: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  probabilitiesContainer: {
+    marginTop: 10,
+  },
+  probabilitiesHeader: {
+    fontSize: 16,
+    marginBottom: 8,
+    fontWeight: "500",
+  },
+  probabilityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  probabilityName: {
+    width: 120,
+    fontSize: 14,
+  },
+  probabilityValue: {
+    width: 60,
+    fontSize: 14,
+    textAlign: "right",
+  },
+  probabilityBar: {
+    flex: 1,
+    height: 10,
+    backgroundColor: "#ddd",
+    borderRadius: 5,
+    marginLeft: 10,
+    overflow: "hidden",
+  },
+  probabilityFill: {
+    height: "100%",
+    backgroundColor: "#4a90e2",
+  },
+  specializedTestsContainer: {
+    marginBottom: 15,
+  },
+  testSection: {
+    backgroundColor: "#e8eaf6",
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  testHeader: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
+    color: "#3f51b5",
+  },
+  colorSpaceInfo: {
+    marginTop: 10,
+    fontSize: 14,
+    fontStyle: "italic",
+    color: "#757575",
+    textAlign: "right",
   },
 });
