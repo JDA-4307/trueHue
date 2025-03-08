@@ -24,4 +24,4 @@ COPY . .
 EXPOSE 3050
 
 # Run the Flask application
-CMD ["python", "app.py"]
+CMD ["python", "server.py"]

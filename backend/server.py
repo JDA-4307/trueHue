@@ -390,7 +390,7 @@ def generate_full_report():
         }
         
         # 2. If it's graphite walnut, run all graphite walnut tests
-        if wood_type == "graphiteWalnut":
+        if wood_type == "graphite_walnut":
             logger.info("Running specialized tests for graphite walnut")
             
             # 2.1 Binary classification
