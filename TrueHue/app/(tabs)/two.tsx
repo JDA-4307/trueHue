@@ -54,7 +54,6 @@ const Two = () => {
 
   return (
     <div className="p-4">
-      <h1 className="text-xl font-bold">Reports</h1>
       {loading ? (
         <p>Loading...</p>
       ) : reports.length === 0 ? (
@@ -93,5 +92,9 @@ const styles = StyleSheet.create({
     marginVertical: 30,
     height: 1,
     width: '80%',
+  },
+  grid_container: {
+    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+    gap: 20,
   },
 });
