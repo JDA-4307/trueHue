@@ -22,12 +22,24 @@ const Two = () => {
   useEffect(() => {
     const fetchReports = async () => {
       try {
+        console.log("Fetching reports...");
         const querySnapshot = await getDocs(collection(db, "Reports"));
-        const reportsData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Report[];
-
+  
+        if (querySnapshot.empty) {
+          console.log("No reports found.");
+        }
+  
+        const reportsData = querySnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            date: data.Date,
+            accuracy: data.Accuracy,
+            wood_type: data.Wood,
+          };
+        });
+  
+        console.log("Fetched Reports:", reportsData);
         setReports(reportsData);
       } catch (error) {
         console.error("Error fetching reports:", error);
@@ -35,25 +47,31 @@ const Two = () => {
         setLoading(false);
       }
     };
-
+  
     fetchReports();
-    console.log(reports);
   }, []);
+  
 
   return (
     <div className="p-4">
+      <h1 className="text-xl font-bold">Reports</h1>
       {loading ? (
         <p>Loading...</p>
+      ) : reports.length === 0 ? (
+        <p>No reports available.</p>
       ) : (
-        <ul>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {reports.map((report) => (
-            <li key={report.id} className="border p-3 my-2 rounded shadow">
+            <div
+              key={report.id}
+              className="border p-4 rounded-lg shadow-md flex flex-col items-center bg-white"
+            >
               <p><strong>Date:</strong> {report.date}</p>
               <p><strong>Accuracy:</strong> {report.accuracy}%</p>
               <p><strong>Wood Type:</strong> {report.wood_type}</p>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
