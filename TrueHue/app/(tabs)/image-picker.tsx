@@ -8,10 +8,12 @@ import {
   Text,
   ActivityIndicator,
   ScrollView,
+  TouchableOpacity,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { BACKEND_URLS } from "../../config"; // Import from config
+
 
 export default function ImagePickerScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -334,10 +336,14 @@ export default function ImagePickerScreen() {
         {!imageUri && (
           <>
             <View style={styles.buttonContainer}>
-              <Button title="Select Image" onPress={pickImage} />
+              <TouchableOpacity style={styles.button} onPress={pickImage}>
+                <Text style={styles.buttonText}>Select Image</Text>
+              </TouchableOpacity>
             </View>
             <View style={styles.buttonContainer}>
-              <Button title="Take Picture" onPress={takePicture} />
+              <TouchableOpacity style={styles.button} onPress={takePicture}>
+                <Text style={styles.buttonText}>Take Picture</Text>
+              </TouchableOpacity>
             </View>
           </>
         )}
@@ -366,21 +372,28 @@ export default function ImagePickerScreen() {
             {!isLoading && !isGeneratingReport && (
               <View style={styles.buttonRow}>
                 <View style={styles.flexButton}>
-                  <Button title="Analyze" onPress={analyzeImage} />
+                  <TouchableOpacity
+                    style={[styles.button, styles.analyzeButton]}
+                    onPress={analyzeImage}
+                  >
+                    <Text style={styles.buttonText}>Analyze</Text>
+                  </TouchableOpacity>
                 </View>
                 <View style={styles.flexButton}>
-                  <Button
-                    title="Full Report"
+                  <TouchableOpacity
+                    style={[styles.button, styles.fullReportButton]}
                     onPress={generateFullReport}
-                    color="#ff9800"
-                  />
+                  >
+                    <Text style={styles.buttonText}>Full Report</Text>
+                  </TouchableOpacity>
                 </View>
                 <View style={styles.flexButton}>
-                  <Button
-                    title="Reupload"
+                  <TouchableOpacity
+                    style={[styles.button, styles.reuploadButton]}
                     onPress={reuploadImage}
-                    color="#f44336"
-                  />
+                  >
+                    <Text style={styles.buttonText}>Reupload</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             )}
@@ -484,6 +497,19 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     marginVertical: 10,
+  },
+  button: {
+    backgroundColor: "#2196F3", // Your exact blue color
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
   buttonRow: {
     flexDirection: "row",
@@ -625,5 +651,14 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     color: "#757575",
     textAlign: "right",
+  },
+  analyzeButton: {
+    backgroundColor: "#2196F3",
+  },
+  fullReportButton: {
+    backgroundColor: "#ff9800",
+  },
+  reuploadButton: {
+    backgroundColor: "#f44336",
   },
 });
