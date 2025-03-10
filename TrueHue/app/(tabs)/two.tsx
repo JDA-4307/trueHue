@@ -3,20 +3,63 @@ import { StyleSheet, Button, Alert } from 'react-native';
 import EditScreenInfo from '@/components/EditScreenInfo';
 import { Text, View } from '@/components/Themed';
 
-export default function TabTwoScreen() {
-  const handleButtonPress = () => {
-    Alert.alert("Button Pressed", "You clicked the button");
-  };
+
+import { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase/firebase";
+
+interface Report {
+  id: string;
+  accuracy: string;
+  date: string;
+  wood_type: string;
+}
+
+const Two = () => {
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "Reports"));
+        const reportsData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Report[];
+
+        setReports(reportsData);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+    console.log(reports);
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab Two</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/two.tsx" />
-      <View><Button title="View Reports" onPress={handleButtonPress}></Button></View>
-    </View>
+    <div className="p-4">
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <ul>
+          {reports.map((report) => (
+            <li key={report.id} className="border p-3 my-2 rounded shadow">
+              <p><strong>Date:</strong> {report.date}</p>
+              <p><strong>Accuracy:</strong> {report.accuracy}%</p>
+              <p><strong>Wood Type:</strong> {report.wood_type}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
-}
+};
+
+export default Two;
 
 const styles = StyleSheet.create({
   container: {
