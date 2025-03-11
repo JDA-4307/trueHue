@@ -13,6 +13,8 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { BACKEND_URLS } from "../../config"; // Import from config
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "../firebase/firebase";
 
 
 export default function ImagePickerScreen() {
@@ -329,6 +331,28 @@ export default function ImagePickerScreen() {
     );
   };
 
+  const saveReport = async () => {
+    if (!reportData) {
+      Alert.alert("No report available", "Please generate a report first.");
+      return;
+    }
+  
+    // Store the report in your preferred storage (e.g., Firebase, local storage)
+    try {
+      // Save the report to Firebase Firestore
+      const docRef = await addDoc(collection(db, "Reports"), {
+        Accuracy: reportData.wood_type?.classification || "Unknown",
+        Date: new Date().toISOString(),
+        Wood: reportData.wood_type?.confidence
+      });
+      console.log("Document written with ID: ", docRef.id);
+      alert("Report saved successfully!");
+    } catch (e) {
+      console.error("Error adding document: ", e);
+      alert("Error saving report.");
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
@@ -473,6 +497,7 @@ export default function ImagePickerScreen() {
             <Text style={styles.colorSpaceInfo}>
               Color space: {reportData.color_space_used || "rgb"}
             </Text>
+            <button onClick={saveReport}>Save Report</button>
           </View>
         )}
       </View>
