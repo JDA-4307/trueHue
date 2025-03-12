@@ -341,9 +341,9 @@ export default function ImagePickerScreen() {
     try {
       // Save the report to Firebase Firestore
       const docRef = await addDoc(collection(db, "Reports"), {
-        Accuracy: reportData.wood_type?.classification || "Unknown",
+        Accuracy: reportData.wood_type?.confidence,
         Date: new Date().toISOString(),
-        Wood: reportData.wood_type?.confidence
+        Wood: reportData.wood_type?.classification || "Unknown"
       });
       console.log("Document written with ID: ", docRef.id);
       alert("Report saved successfully!");
