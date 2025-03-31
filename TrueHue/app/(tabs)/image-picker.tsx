@@ -15,7 +15,10 @@ import axios from "axios";
 import { BACKEND_URLS } from "../../config"; // Import from config
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import { getStorage } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
+export const storage = getStorage();
 
 export default function ImagePickerScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -34,7 +37,6 @@ export default function ImagePickerScreen() {
   >(null);
 
   // Now using BACKEND_URLS from config instead of hardcoded values
-
   useEffect(() => {
     (async () => {
       const galleryStatus =
@@ -267,7 +269,6 @@ export default function ImagePickerScreen() {
     }
   };
 
-  // Reupload: resets image and response state
   const reuploadImage = () => {
     setImageUri(null);
     setImageBase64(null);
@@ -277,7 +278,6 @@ export default function ImagePickerScreen() {
     setReportData(null);
   };
 
-  // Format specialized test results for display
   const renderSpecializedTests = () => {
     if (
       !reportData?.specialized_tests ||
@@ -331,25 +331,46 @@ export default function ImagePickerScreen() {
     );
   };
 
-  const saveReport = async () => {
+  const uploadImageAsync = async (uri: string) => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+  
+      const filename = `wood_images/${Date.now()}.jpg`;
+      const storageRef = ref(storage, filename);
+  
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+  
+      return downloadURL;
+    } catch (error) {
+      console.error("Image upload error:", error);
+      throw error;
+    }
+  };
+
+  const saveReport = async (imageUri: string, reportData: any) => {
     if (!reportData) {
       Alert.alert("No report available", "Please generate a report first.");
       return;
     }
   
-    // Store the report in your preferred storage (e.g., Firebase, local storage)
     try {
-      // Save the report to Firebase Firestore
+      const imageUrl = await uploadImageAsync(imageUri);
+  
       const docRef = await addDoc(collection(db, "Reports"), {
-        Accuracy: reportData.wood_type?.confidence,
-        Date: new Date().toISOString(),
-        Wood: reportData.wood_type?.classification || "Unknown"
+        accuracy: reportData.wood_type?.confidence || 0,
+        date: new Date().toISOString(),
+        woodType: reportData.wood_type?.classification || "Unknown",
+        probabilities: reportData.wood_type?.all_probabilities || {},
+        imageUrl,
       });
-      console.log("Document written with ID: ", docRef.id);
-      alert("Report saved successfully!");
-    } catch (e) {
-      console.error("Error adding document: ", e);
-      alert("Error saving report.");
+  
+      console.log("Report saved with ID:", docRef.id);
+      Alert.alert("Success", "Report saved successfully!");
+    } catch (error) {
+      console.error("Error saving report:", error);
+      Alert.alert("Error", "Failed to save report.");
     }
   };
 
@@ -497,7 +518,7 @@ export default function ImagePickerScreen() {
             <Text style={styles.colorSpaceInfo}>
               Color space: {reportData.color_space_used || "rgb"}
             </Text>
-            <button onClick={saveReport}>Save Report</button>
+            <button onClick={() => saveReport(imageUri!, reportData)}>Save Report</button>
           </View>
         )}
       </View>
