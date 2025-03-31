@@ -68,10 +68,26 @@ const Two = () => {
 
   useEffect(() => {
     let filtered = reports;
-    if (selectedMonth) filtered = filtered.filter(report => new Date(report.date).getMonth() + 1 === Number(selectedMonth));
-    if (selectedDay) filtered = filtered.filter(report => new Date(report.date).getDate() === Number(selectedDay));
-    if (selectedYear) filtered = filtered.filter(report => new Date(report.date).getFullYear() === Number(selectedYear));
-    if (selectedWoodType !== 'All') filtered = filtered.filter(report => report.wood_type === selectedWoodType);
+    
+    // Apply month filter only if selectedMonth is not null
+    if (selectedMonth !== null) {
+      filtered = filtered.filter(report => new Date(report.date).getMonth() + 1 === Number(selectedMonth));
+    }
+
+    // Apply day filter only if selectedDay is not null
+    if (selectedDay !== null) {
+      filtered = filtered.filter(report => new Date(report.date).getDate() === Number(selectedDay));
+    }
+
+    // Apply year filter only if selectedYear is not null
+    if (selectedYear !== null) {
+      filtered = filtered.filter(report => new Date(report.date).getFullYear() === Number(selectedYear));
+    }
+
+    // Apply woodType filter only if selectedWoodType is not 'All'
+    if (selectedWoodType !== 'All') {
+      filtered = filtered.filter(report => report.wood_type === selectedWoodType);
+    }
     
     setFilteredReports(filtered);
   }, [selectedMonth, selectedDay, selectedYear, selectedWoodType, reports]);
