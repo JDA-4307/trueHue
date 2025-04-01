@@ -17,39 +17,39 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
 
 ### Version 0.4.0:
 
-### Features
+#### Features
 -Integrated Models: Combined multiple models for improved color verification accuracy.
 -Report Page: Added new filtering system that filters wood veneer by date (day/month/year) and wood type (Medium Cherry, Graphite Walnut, Desert Oak).
 -Sharing Button: Added new share button functionality for easier result distribution.
 
-### Bug Fixes
+#### Bug Fixes
 - Fixed dockerfile issues to ensure all team members can run the backend code smoothly
 
-### **Known Issues**
+#### **Known Issues**
 - We are still running into accuracy issues with the image analyzer that needs to be fixed in sprint 5.
 
 ### Version 0.3.0:
 
-### Features
+#### Features
 * New button that analyzes the uploaded wood veneer against all models and provides a confidence score for each wood type, offering more accurate and reliable results.
 
-### Bug Fixes
+#### Bug Fixes
 - Configured the app by docterizing it to allow certain team members devices to access the application
 - Fixed confidence score being really high at 99.99% or 100% 
 
-### **Known Issues**
+#### **Known Issues**
 - The model is not deemed to be 100% accurate as we are still developing and improving models.
 
 ### Version 0.2.0:
 
-### Features
+#### Features
 * Added Reupload functionality
 * Added a spectrum for better user experience and visualization of where in the range the color falls within.
 
-### Bug Fixes
+#### Bug Fixes
 * Switched backend language to python, Node.js was giving errors to certain Mac OS users.
 
-### **Known Issues**
+#### **Known Issues**
 - We are still missing the **Desert Oak** color validation model. The current version supports only two color classes: **Medium Cherry** and **Graphite Walnute** since we had corrupted desert oak images and are still recollecting data.
 - The model may not always be accurate as we are recollecting data for normalization due to lighting variances and lighting issues.
 
