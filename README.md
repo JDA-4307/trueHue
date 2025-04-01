@@ -18,9 +18,9 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
 ### Version 0.4.0:
 
 #### Features
--Integrated Models: Combined multiple models for improved color verification accuracy.
--Report Page: Added new filtering system that filters wood veneer by date (day/month/year) and wood type (Medium Cherry, Graphite Walnut, Desert Oak).
--Sharing Button: Added new share button functionality for easier result distribution.
+* Integrated Models: Combined multiple models for improved color verification accuracy.
+* Report Page: Added new filtering system that filters wood veneer by date (day/month/year) and wood type (Medium Cherry, Graphite Walnut, Desert Oak).
+* Sharing Button: Added new share button functionality for easier result distribution.
 
 #### Bug Fixes
 - Fixed dockerfile issues to ensure all team members can run the backend code smoothly
