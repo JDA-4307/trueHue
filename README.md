@@ -18,15 +18,16 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
 ### Version 0.4.0:
 
 ### Features
-* New button that analyzes the uploaded wood veneer against all models and provides a confidence score for each wood type, offering more accurate and reliable results.
+-Integrated Models: Combined multiple models for improved color verification accuracy.
+-Report Page: Added new filtering system that filters wood veneer by date (day/month/year) and wood type (Medium Cherry, Graphite Walnut, Desert Oak).
+-Sharing Button: Added new share button functionality for easier result distribution.
 
 ### Bug Fixes
-- Configured the app by docterizing it to allow certain team members devices to access the application
-- Fixed confidence score being really high at 99.99% or 100% 
+- Fixed dockerfile issues to ensure all team members can run the backend code smoothly
 
 ### **Known Issues**
-- The model is not deemed to be 100% accurate as we are still developing and improving models.
-- 
+- We are still running into accuracy issues with the image analyzer that needs to be fixed in sprint 5.
+
 ### Version 0.3.0:
 
 ### Features
