@@ -15,6 +15,18 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
 
 ## Release Notes
 
+### Version 0.4.0:
+
+### Features
+* New button that analyzes the uploaded wood veneer against all models and provides a confidence score for each wood type, offering more accurate and reliable results.
+
+### Bug Fixes
+- Configured the app by docterizing it to allow certain team members devices to access the application
+- Fixed confidence score being really high at 99.99% or 100% 
+
+### **Known Issues**
+- The model is not deemed to be 100% accurate as we are still developing and improving models.
+- 
 ### Version 0.3.0:
 
 ### Features
