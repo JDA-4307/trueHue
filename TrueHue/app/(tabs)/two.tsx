@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
@@ -22,14 +22,30 @@ const formatDate = (isoString: string) => {
 };
 
 const generateMonths = () => [
-  { label: 'January', value: 1 }, { label: 'February', value: 2 }, { label: 'March', value: 3 },
-  { label: 'April', value: 4 }, { label: 'May', value: 5 }, { label: 'June', value: 6 },
-  { label: 'July', value: 7 }, { label: 'August', value: 8 }, { label: 'September', value: 9 },
-  { label: 'October', value: 10 }, { label: 'November', value: 11 }, { label: 'December', value: 12 }
+  { label: 'All Months', value: '' },
+  { label: 'January', value: '1' }, { label: 'February', value: '2' }, 
+  { label: 'March', value: '3' }, { label: 'April', value: '4' }, 
+  { label: 'May', value: '5' }, { label: 'June', value: '6' },
+  { label: 'July', value: '7' }, { label: 'August', value: '8' }, 
+  { label: 'September', value: '9' }, { label: 'October', value: '10' }, 
+  { label: 'November', value: '11' }, { label: 'December', value: '12' }
 ];
 
-const generateDays = () => Array.from({ length: 31 }, (_, index) => index + 1);
-const generateYears = () => Array.from({ length: 10 }, (_, index) => new Date().getFullYear() - index);
+const generateDays = () => [
+  { label: 'All Days', value: '' },
+  ...Array.from({ length: 31 }, (_, index) => ({
+    label: String(index + 1),
+    value: String(index + 1)
+  }))
+];
+
+const generateYears = () => [
+  { label: 'All Years', value: '' },
+  ...Array.from({ length: 10 }, (_, index) => ({
+    label: String(new Date().getFullYear() - index),
+    value: String(new Date().getFullYear() - index)
+  }))
+];
 
 const woodTypes = ['All', 'Graphite Walnut', 'Medium Cherry', 'Desert Oak'];
 
@@ -37,9 +53,9 @@ const Two = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [filteredReports, setFilteredReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [selectedYear, setSelectedYear] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [selectedDay, setSelectedDay] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedWoodType, setSelectedWoodType] = useState<string>('All');
 
   useEffect(() => {
@@ -82,16 +98,25 @@ const Two = () => {
   useEffect(() => {
     let filtered = reports;
     
-    if (selectedMonth !== null) {
-      filtered = filtered.filter(report => new Date(report.rawDate).getMonth() + 1 === Number(selectedMonth));
+    if (selectedMonth) {
+      filtered = filtered.filter(report => {
+        const reportMonth = new Date(report.rawDate).getMonth() + 1;
+        return reportMonth === Number(selectedMonth);
+      });
     }
 
-    if (selectedDay !== null) {
-      filtered = filtered.filter(report => new Date(report.rawDate).getDate() === Number(selectedDay));
+    if (selectedDay) {
+      filtered = filtered.filter(report => {
+        const reportDay = new Date(report.rawDate).getDate();
+        return reportDay === Number(selectedDay);
+      });
     }
 
-    if (selectedYear !== null) {
-      filtered = filtered.filter(report => new Date(report.rawDate).getFullYear() === Number(selectedYear));
+    if (selectedYear) {
+      filtered = filtered.filter(report => {
+        const reportYear = new Date(report.rawDate).getFullYear();
+        return reportYear === Number(selectedYear);
+      });
     }
 
     const woodTypeMap: Record<string, string> = {
@@ -118,63 +143,96 @@ const Two = () => {
       <View style={styles.filtersContainer}>
         <Text style={styles.filterLabel}>Filter by:</Text>
         <View style={styles.filters}>
-          <View style={styles.pickerContainer}>
+          <View style={styles.pickerWrapper}>
             <Text style={styles.pickerLabel}>Month</Text>
-            <Picker 
-              selectedValue={selectedMonth} 
-              onValueChange={setSelectedMonth}
-              style={styles.picker}
-              dropdownIconColor="#666"
-            >
-              <Picker.Item label="All Months" value={null} />
-              {generateMonths().map(({ label, value }) => 
-                <Picker.Item key={value} label={label} value={value} />
-              )}
-            </Picker>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedMonth}
+                onValueChange={setSelectedMonth}
+                style={styles.picker}
+                dropdownIconColor="#2c3e50"
+                mode="dropdown"
+                itemStyle={styles.pickerItem}
+              >
+                {generateMonths().map(({ label, value }) => (
+                  <Picker.Item 
+                    key={value} 
+                    label={label} 
+                    value={value} 
+                    color={Platform.OS === 'ios' ? '#2c3e50' : undefined}
+                  />
+                ))}
+              </Picker>
+            </View>
           </View>
           
-          <View style={styles.pickerContainer}>
+          <View style={styles.pickerWrapper}>
             <Text style={styles.pickerLabel}>Day</Text>
-            <Picker 
-              selectedValue={selectedDay} 
-              onValueChange={setSelectedDay}
-              style={styles.picker}
-              dropdownIconColor="#666"
-            >
-              <Picker.Item label="All Days" value={null} />
-              {generateDays().map(day => 
-                <Picker.Item key={day} label={String(day)} value={day} />
-              )}
-            </Picker>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedDay}
+                onValueChange={setSelectedDay}
+                style={styles.picker}
+                dropdownIconColor="#2c3e50"
+                mode="dropdown"
+                itemStyle={styles.pickerItem}
+              >
+                {generateDays().map(({ label, value }) => (
+                  <Picker.Item 
+                    key={value} 
+                    label={label} 
+                    value={value} 
+                    color={Platform.OS === 'ios' ? '#2c3e50' : undefined}
+                  />
+                ))}
+              </Picker>
+            </View>
           </View>
           
-          <View style={styles.pickerContainer}>
+          <View style={styles.pickerWrapper}>
             <Text style={styles.pickerLabel}>Year</Text>
-            <Picker 
-              selectedValue={selectedYear} 
-              onValueChange={setSelectedYear}
-              style={styles.picker}
-              dropdownIconColor="#666"
-            >
-              <Picker.Item label="All Years" value={null} />
-              {generateYears().map(year => 
-                <Picker.Item key={year} label={String(year)} value={year} />
-              )}
-            </Picker>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedYear}
+                onValueChange={setSelectedYear}
+                style={styles.picker}
+                dropdownIconColor="#2c3e50"
+                mode="dropdown"
+                itemStyle={styles.pickerItem}
+              >
+                {generateYears().map(({ label, value }) => (
+                  <Picker.Item 
+                    key={value} 
+                    label={label} 
+                    value={value} 
+                    color={Platform.OS === 'ios' ? '#2c3e50' : undefined}
+                  />
+                ))}
+              </Picker>
+            </View>
           </View>
           
-          <View style={styles.pickerContainer}>
+          <View style={styles.pickerWrapper}>
             <Text style={styles.pickerLabel}>Wood Type</Text>
-            <Picker 
-              selectedValue={selectedWoodType} 
-              onValueChange={setSelectedWoodType}
-              style={styles.picker}
-              dropdownIconColor="#666"
-            >
-              {woodTypes.map(type => 
-                <Picker.Item key={type} label={type} value={type} />
-              )}
-            </Picker>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedWoodType}
+                onValueChange={setSelectedWoodType}
+                style={styles.picker}
+                dropdownIconColor="#2c3e50"
+                mode="dropdown"
+                itemStyle={styles.pickerItem}
+              >
+                {woodTypes.map(type => (
+                  <Picker.Item 
+                    key={type} 
+                    label={type} 
+                    value={type} 
+                    color={Platform.OS === 'ios' ? '#2c3e50' : undefined}
+                  />
+                ))}
+              </Picker>
+            </View>
           </View>
         </View>
       </View>
@@ -188,28 +246,21 @@ const Two = () => {
           <Text style={styles.noResultsText}>No reports match your filters</Text>
         </View>
       ) : (
-        <View style={styles.tableContainer}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.headerCell, styles.dateHeader]}>Date</Text>
-            <Text style={[styles.headerCell, styles.accuracyHeader]}>Accuracy</Text>
-            <Text style={[styles.headerCell, styles.typeHeader]}>Wood Type</Text>
-          </View>
-          <ScrollView style={styles.tableBody}>
-            {filteredReports.map((report) => (
-              <View key={report.id} style={styles.tableRow}>
-                <Text style={[styles.cell, styles.dateCell]}>{report.date}</Text>
-                <Text style={[styles.cell, styles.accuracyCell]}>{report.accuracy}%</Text>
-                <Text style={[styles.cell, styles.typeCell]}>{report.wood_type}</Text>
+        <ScrollView style={styles.reportsContainer}>
+          {filteredReports.map((report) => (
+            <View key={report.id} style={styles.reportCard}>
+              <View style={styles.reportRow}>
+                <Text style={styles.reportDate}>{report.date}</Text>
+                <Text style={styles.reportWoodType}>{report.wood_type}</Text>
+                <Text style={styles.reportAccuracy}>{report.accuracy}%</Text>
               </View>
-            ))}
-          </ScrollView>
-        </View>
+            </View>
+          ))}
+        </ScrollView>
       )}
     </View>
   );
 };
-
-export default Two;
 
 const styles = StyleSheet.create({
   container: {
@@ -220,7 +271,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#2c3e50',
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -238,89 +289,77 @@ const styles = StyleSheet.create({
   filterLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#444',
-    marginBottom: 10,
+    color: '#2c3e50',
   },
   filters: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  pickerContainer: {
+  pickerWrapper: {
     width: '48%',
     marginBottom: 15,
   },
   pickerLabel: {
     fontSize: 14,
-    color: '#666',
+    color: '#2c3e50',
     marginBottom: 5,
+    fontWeight: '500',
   },
-  picker: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+  pickerContainer: {
     borderWidth: 1,
     borderColor: '#ddd',
+    borderRadius: 8,
+    overflow: 'hidden',
+    alignItems: 'center',
+
   },
-  tableContainer: {
+  picker: {
+    height: Platform.OS === 'ios' ? 120 : 50,
+    width: '100%',
+    color: '#2c3e50',
+    marginTop: Platform.OS === 'ios' ? -60 : 0,
+    marginBottom: Platform.OS === 'ios' ? 40 : 0  ,
+  },
+  pickerItem: {
+    fontSize: 16,
+  },
+  reportsContainer: {
     flex: 1,
+    marginBottom: 20,
+  },
+  reportCard: {
     backgroundColor: '#fff',
     borderRadius: 10,
-    overflow: 'hidden',
+    padding: 15,
+    marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  tableHeader: {
+  reportRow: {
     flexDirection: 'row',
-    backgroundColor: '#2c3e50',
-    paddingVertical: 12,
-  },
-  headerCell: {
-    color: '#fff',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  dateHeader: {
-    flex: 2,
-    paddingLeft: 15,
-    textAlign: 'left',
-  },
-  accuracyHeader: {
-    flex: 1,
-  },
-  typeHeader: {
-    flex: 2,
-    paddingRight: 15,
-    textAlign: 'right',
-  },
-  tableBody: {
-    flex: 1,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  cell: {
-    fontSize: 14,
-    color: '#333',
-  },
-  dateCell: {
+  reportDate: {
+    fontSize: 16,
+    color: '#2c3e50',
     flex: 2,
-    paddingLeft: 15,
   },
-  accuracyCell: {
-    flex: 1,
+  reportWoodType: {
+    fontSize: 16,
+    color: '#2c3e50',
+    flex: 2,
     textAlign: 'center',
-    fontWeight: '600',
   },
-  typeCell: {
-    flex: 2,
-    paddingRight: 15,
+  reportAccuracy: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#27ae60',
+    flex: 1,
     textAlign: 'right',
   },
   loadingContainer: {
@@ -346,3 +385,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default Two;
