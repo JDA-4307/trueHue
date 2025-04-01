@@ -32,6 +32,10 @@ export default function ImagePickerScreen() {
   const [hasCameraPermission, setHasCameraPermission] = useState<
     boolean | null
   >(null);
+  const subject = "Check this out!";
+  const body = "Hey, I wanted to share this with you.\n\nBest regards!";
+  const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
 
   // Now using BACKEND_URLS from config instead of hardcoded values
 
@@ -206,6 +210,7 @@ export default function ImagePickerScreen() {
       setIsLoading(false);
     }
   };
+  
 
   // Generate Full Report
   const generateFullReport = async () => {
@@ -331,6 +336,7 @@ export default function ImagePickerScreen() {
     );
   };
 
+
   const saveReport = async () => {
     if (!reportData) {
       Alert.alert("No report available", "Please generate a report first.");
@@ -353,6 +359,17 @@ export default function ImagePickerScreen() {
     }
   };
 
+  const title = "Wood Report Details";
+  const content = `
+  This is a detailed report of your wood analysis. The results are based on the image you provided.
+  The analysis includes the classification of the wood type, confidence levels, and any specialized tests that were performed.
+  Please review the results carefully and let us know if you have any questions or need further assistance.
+    Report Summary:
+    - Wood Type: ${reportData.wood_type?.classification || "Unknown"}
+    - Accuracy: ${reportData.wood_type?.confidence || 0}%
+    - Date: ${new Date().toISOString()}
+  `;
+  const mail = `mailto:${""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
@@ -497,7 +514,9 @@ export default function ImagePickerScreen() {
             <Text style={styles.colorSpaceInfo}>
               Color space: {reportData.color_space_used || "rgb"}
             </Text>
+            <button onClick={() => window.location.href = mailtoLink}>Share via Email</button>
             <button onClick={saveReport}>Save Report</button>
+
           </View>
         )}
       </View>
