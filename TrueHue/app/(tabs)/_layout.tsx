@@ -70,7 +70,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="image-picker"
         options={{
-          title: "Image Picker",
+          title: "Image Analyzer",
+          headerTitleAlign: "center",
+          headerStyle: {
+            alignItems: "center",
+          },
           tabBarIcon: ({ color, size }) => (
             <Image
               source={require("../../assets/images/photo_icon.png")}
