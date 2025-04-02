@@ -11,8 +11,10 @@ const API_URL =
 
 export const BACKEND_URLS = {
   classify: `${API_URL}/predict`, // TFLite classification
-  medium_cherry: `${API_URL}/predict_medium`, // Medium cherry regression
-  graphite_walnut: `${API_URL}/predict_graphite`, // Graphite walnut regression
+  medium_cherry: `${API_URL}/validate/medium_cherry`, // Medium cherry validation (updated)
+  desert_oak: `${API_URL}/validate/desert_oak`, // Desert oak validation (new)
+  graphite_walnut: `${API_URL}/validate/graphite_walnut`, // Graphite walnut validation (updated)
+
   // New endpoints
   generateFullReport: `${API_URL}/generate-full-report`, // Full analysis report
   binary_graphite_walnut: `${API_URL}/predict/binary/graphite_walnut`, // Binary classification
