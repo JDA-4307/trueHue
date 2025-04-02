@@ -28,7 +28,12 @@ MODELS = {
     'default': './assets/models/wood_classification.tflite',
     'binary_model_graphite_walnut': './assets/models/binary_model_graphite_walnut.tflite',
     'multiclass_model_graphite_walnut': './assets/models/multiclass_model_graphite_walnut.tflite',
-    'regression_model_graphite_walnut': './assets/models/regression_model_graphite_walnut.tflite'
+    'regression_model_graphite_walnut': './assets/models/regression_model_graphite_walnut.tflite',
+    
+    'validation_model_medium_cherry': './assets/models/medium-cherry_classifier_model_lab.tflite',
+    'validation_model_desert_oak':'./assets/models/desert-oak_classifier_model_lab.tflite',
+    'validation_model_graphite_walnut': './assets/models/graphite-walnut_classifier_model_lab.tflite'
+    
 }
 
 # Define class names for each model
@@ -37,6 +42,10 @@ CLASS_NAMES = {
     'binary_model_graphite_walnut': ['Not GraphiteWalnut', 'graphiteWalnut'],
     'multiclass_model_graphite_walnut': ['mediumCherry', 'desertOak', 'graphiteWalnut', 'other'],
     # No classes for regression model
+    # For validation models - assume binary [Not Valid, Valid]
+    'validation_model_medium_cherry': ['Valid', 'Not Valid'],
+    'validation_model_desert_oak': ['Valid', 'Not Valid'],
+    'validation_model_graphite_walnut': ['Valid', 'Not Valid']
 }
 
 # Load all models at startup
@@ -344,6 +353,217 @@ def predict_regression_graphite_walnut():
 
     except Exception as e:
         logger.error(f"Error in regression prediction endpoint: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# NEW ENDPOINTS - Wood Validation
+
+def predict_binary_classification(interpreter, preprocessed_image, threshold=0.5):
+    """
+    Process a binary classification model with sigmoid output.
+    
+    Args:
+        interpreter: TFLite interpreter loaded with model
+        preprocessed_image: Image data prepared for the model
+        threshold: Threshold value (between 0-1) to determine "in range"
+    
+    Returns:
+        Dictionary with results including in_range status and confidence
+    """
+    try:
+        # Get input and output details
+        input_details = interpreter.get_input_details()
+        output_details = interpreter.get_output_details()
+
+        # Set the tensor to point to the input data to be inferred
+        interpreter.set_tensor(input_details[0]['index'], preprocessed_image)
+
+        # Run the inference
+        interpreter.invoke()
+
+        # Retrieve the output
+        output_data = interpreter.get_tensor(output_details[0]['index'])
+        logger.info(f"Binary model output shape: {output_data.shape}")
+        logger.info(f"Binary model raw output: {output_data}")
+        
+        # Extract the prediction value (should be a value between 0 and 1)
+        if len(output_data.shape) == 2 and output_data.shape[1] == 1:
+            # If output shape is [1,1], extract the single value (common for sigmoid output)
+            prediction_value = float(output_data[0][0])
+        else:
+            # If output shape is different, assume it's logits and apply sigmoid
+            prediction_value = float(tf.nn.sigmoid(output_data[0][0]).numpy())
+        
+        logger.info(f"Binary prediction value: {prediction_value}, threshold: {threshold}")
+        
+        # Determine if it's "in range" using the threshold
+        is_in_range = prediction_value > threshold
+        
+        # Calculate confidence (0-100%)
+        # This simply uses how far the prediction is from 0.5 (maximum uncertainty)
+        # 0.5 = 50% confidence, 0.0 or 1.0 = 100% confidence
+        raw_confidence = abs(prediction_value - 0.5) * 2 * 100
+        
+        return {
+            "is_in_range": is_in_range,
+            "confidence": raw_confidence,
+            "raw_prediction": prediction_value
+        }
+    
+    except Exception as e:
+        logger.error(f"Error during binary classification prediction: {e}")
+        return {"error": f"An error occurred during prediction: {str(e)}"}
+
+# Medium Cherry Validation Endpoint
+@app.route('/validate/medium_cherry', methods=['POST'])
+def validate_medium_cherry():
+    try:
+        # Hardcoded threshold for medium cherry
+        THRESHOLD = 0.5082  # Adjust as needed
+        
+        # Get JSON data from request
+        data = request.json
+        
+        image = data.get("image")
+        mime_type = data.get("mimeType")
+        color_space = "lab"  # Always use LAB color space
+
+        if not image or not mime_type:
+            return jsonify({"error": "Invalid input - missing image or mimeType"}), 400
+
+        # Use the medium cherry validation model
+        model_name = 'validation_model_medium_cherry'
+        interpreter = interpreters.get(model_name)
+        if not interpreter:
+            return jsonify({"error": f"Model {model_name} not loaded"}), 500
+
+        preprocessed_image = preprocess_image(image, color_space)
+        if preprocessed_image is None:
+            return jsonify({"error": "Error processing image"}), 400
+
+        # Run prediction with hardcoded threshold
+        prediction_result = predict_binary_classification(
+            interpreter, 
+            preprocessed_image,
+            threshold=THRESHOLD
+        )
+        
+        if "error" in prediction_result:
+            return jsonify(prediction_result), 500
+        
+        # Return the result in the expected format
+        result = {
+            "result": prediction_result["is_in_range"],
+            "confidence": prediction_result["confidence"],
+            "position_score": 0.0,  # Neutral position score
+            "color_space_used": color_space
+        }
+        
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error in medium cherry validation endpoint: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# Desert Oak Validation Endpoint
+@app.route('/validate/desert_oak', methods=['POST'])
+def validate_desert_oak():
+    try:
+        # Hardcoded threshold for desert oak
+        THRESHOLD = 0.507  # Adjust as needed
+        
+        # Get JSON data from request
+        data = request.json
+        
+        image = data.get("image")
+        mime_type = data.get("mimeType")
+        color_space = "lab"  # Always use LAB color space
+
+        if not image or not mime_type:
+            return jsonify({"error": "Invalid input - missing image or mimeType"}), 400
+
+        # Use the desert oak validation model
+        model_name = 'validation_model_desert_oak'
+        interpreter = interpreters.get(model_name)
+        if not interpreter:
+            return jsonify({"error": f"Model {model_name} not loaded"}), 500
+
+        preprocessed_image = preprocess_image(image, color_space)
+        if preprocessed_image is None:
+            return jsonify({"error": "Error processing image"}), 400
+
+        # Run prediction with hardcoded threshold
+        prediction_result = predict_binary_classification(
+            interpreter, 
+            preprocessed_image,
+            threshold=THRESHOLD
+        )
+        
+        if "error" in prediction_result:
+            return jsonify(prediction_result), 500
+        
+        # Return the result in the expected format
+        result = {
+            "result": prediction_result["is_in_range"],
+            "confidence": prediction_result["confidence"],
+            "position_score": 0.0,  # Neutral position score
+            "color_space_used": color_space
+        }
+        
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error in desert oak validation endpoint: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# Graphite Walnut Validation Endpoint
+@app.route('/validate/graphite_walnut', methods=['POST'])
+def validate_graphite_walnut():
+    try:
+        # Hardcoded threshold for graphite walnut
+        THRESHOLD = 0.5125339031219482  # Adjust as needed
+        
+        # Get JSON data from request
+        data = request.json
+        
+        image = data.get("image")
+        mime_type = data.get("mimeType")
+        color_space = "lab"  # Always use LAB color space
+
+        if not image or not mime_type:
+            return jsonify({"error": "Invalid input - missing image or mimeType"}), 400
+
+        # Fix typo in model name (if needed)
+        model_name = 'validation_model_graphite_walnut'
+        interpreter = interpreters.get(model_name)
+        if not interpreter:
+            return jsonify({"error": f"Model {model_name} not loaded"}), 500
+
+        preprocessed_image = preprocess_image(image, color_space)
+        if preprocessed_image is None:
+            return jsonify({"error": "Error processing image"}), 400
+
+        # Run prediction with hardcoded threshold
+        prediction_result = predict_binary_classification(
+            interpreter, 
+            preprocessed_image,
+            threshold=THRESHOLD
+        )
+        
+        if "error" in prediction_result:
+            return jsonify(prediction_result), 500
+        
+        # Return the result in the expected format
+        result = {
+            "result": prediction_result["is_in_range"],
+            "confidence": prediction_result["confidence"],
+            "position_score": 0.0,  # Neutral position score
+            "color_space_used": color_space
+        }
+        
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error in graphite walnut validation endpoint: {e}")
         return jsonify({"error": str(e)}), 500
 
 # Full report endpoint
