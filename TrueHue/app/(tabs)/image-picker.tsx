@@ -14,7 +14,8 @@ import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { BACKEND_URLS } from "../../config"; // Import from config
 import { addDoc, collection } from "firebase/firestore";
-import { db } from "../firebase/firebase";
+import { storage, db } from "../firebase/firebase";
+import { getDownloadURL, ref, uploadBytes, uploadString } from "firebase/storage";
 
 
 export default function ImagePickerScreen() {
@@ -338,15 +339,29 @@ export default function ImagePickerScreen() {
     if (!reportData) {
       Alert.alert("No report available", "Please generate a report first.");
       return;
+    } 
+
+    if(!imageBase64) {
+      Alert.alert("No image available", "Please upload an image first.");
+      return;
     }
   
     // Store the report in your preferred storage (e.g., Firebase, local storage)
     try {
+      setIsLoading(true);
+
+      const filename = `images/${Date.now()}.jpg`;
+      const storageRef = ref(storage, filename);
+      const uploadTask = uploadString(storageRef, imageBase64, 'base64'); // Upload base64 image
+      await uploadTask;
+      const downloadUrl = await getDownloadURL(storageRef);
+
       // Save the report to Firebase Firestore
       const docRef = await addDoc(collection(db, "Reports"), {
         Accuracy: reportData.wood_type?.confidence,
         Date: new Date().toISOString(),
-        Wood: reportData.wood_type?.classification || "Unknown"
+        Wood: reportData.wood_type?.classification || "Unknown",
+        imageUrl: downloadUrl
       });
       console.log("Document written with ID: ", docRef.id);
       alert("Report saved successfully!");
@@ -691,3 +706,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#f44336",
   },
 });
+
+
