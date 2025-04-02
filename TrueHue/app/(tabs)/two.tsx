@@ -1,8 +1,9 @@
-import { StyleSheet, Text, View, ScrollView, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Platform, Share, Button, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Report {
   id: string;
@@ -57,7 +58,30 @@ const Two = () => {
   const [selectedDay, setSelectedDay] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedWoodType, setSelectedWoodType] = useState<string>('All');
-
+  
+  const shareReport = async (report: { wood_type: any; accuracy: any; date: any; }) => {
+    const title = "Wood Report Details";
+    const content = `
+    This is a detailed report of your wood analysis. The results are based on the image you provided.
+    The analysis includes the classification of the wood type, confidence levels, and any specialized tests that were performed.
+    
+    Report Summary:
+    - Wood Type: ${report.wood_type || "Unknown"}
+    - Accuracy: ${report.accuracy || 0}%
+    - Date: ${report.date}
+  
+    Please review the results carefully and let us know if you have any questions or need further assistance.
+    `;
+  
+    try {
+      await Share.share({
+        title,
+        message: content,
+      });
+    } catch (error) {
+      console.error("Error sharing report:", error);
+    }
+  };
   useEffect(() => {
     const fetchReports = async () => {
       try {
@@ -253,6 +277,9 @@ const Two = () => {
                 <Text style={styles.reportDate}>{report.date}</Text>
                 <Text style={styles.reportWoodType}>{report.wood_type}</Text>
                 <Text style={styles.reportAccuracy}>{report.accuracy}%</Text>
+                <TouchableOpacity onPress={() => shareReport(report)}>
+                  <Ionicons name="share-outline" size={24} color="#2980b9" />
+                </TouchableOpacity>
               </View>
             </View>
           ))}
