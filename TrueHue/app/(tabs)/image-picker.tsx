@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
+  Linking,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
@@ -24,6 +25,7 @@ export default function ImagePickerScreen() {
   const [confidence, setConfidence] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState<boolean>(false);
+
   const [reportData, setReportData] = useState<any>(null);
   const [hasGalleryPermission, setHasGalleryPermission] = useState<
     boolean | null
