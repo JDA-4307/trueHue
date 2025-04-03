@@ -13,12 +13,11 @@ import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { BACKEND_URLS } from "../../config"; // Import from config
 
-// Add these constants at the top of your file, before your component
-const COLOR_DIFFERENCE_RANGES = {
-  VERY_SIMILAR: 10, // Green threshold
-  MODERATE: 50, // Yellow threshold
-} as const;
+// Define just the range thresholds as global variables
+let VERY_SIMILAR_THRESHOLD = 10;
+let MODERATE_THRESHOLD = 50;
 
+// Add these constants at the top of your file, before your component
 const COLOR_PALETTE = {
   GREEN: "#4CAF50",
   YELLOW: "#FFC107",
@@ -214,18 +213,18 @@ export default function VeneerComparisonScreen() {
 
   // Get color based on difference value for visualization
   const getDifferenceColor = (value: number): string => {
-    if (value < COLOR_DIFFERENCE_RANGES.VERY_SIMILAR)
-      return COLOR_PALETTE.GREEN;
-    if (value < COLOR_DIFFERENCE_RANGES.MODERATE) return COLOR_PALETTE.YELLOW;
+    console.log(`diff value: ${value}`);
+    if (value < VERY_SIMILAR_THRESHOLD) return COLOR_PALETTE.GREEN;
+    if (value < MODERATE_THRESHOLD) return COLOR_PALETTE.YELLOW;
     return COLOR_PALETTE.RED;
   };
 
   // Get interpretation text based on difference value
   const getDifferenceInterpretation = (value: number): string => {
-    if (value < COLOR_DIFFERENCE_RANGES.VERY_SIMILAR) {
+    if (value < VERY_SIMILAR_THRESHOLD) {
       return "These veneer samples are very similar in color.";
     }
-    if (value < COLOR_DIFFERENCE_RANGES.MODERATE) {
+    if (value < MODERATE_THRESHOLD) {
       return "These veneer samples have moderate color differences.";
     }
     return "These veneer samples have significant color differences.";
@@ -332,7 +331,9 @@ export default function VeneerComparisonScreen() {
                   { backgroundColor: getDifferenceColor(normalizedDifference) },
                 ]}
               >
-                <Text style={styles.resultValue}>{difference.toFixed(2)}</Text>
+                <Text style={styles.resultValue}>
+                  {normalizedDifference.toFixed(2)}
+                </Text>
               </View>
               <Text style={styles.resultLabel}>RGB Euclidean Difference</Text>
             </View>
