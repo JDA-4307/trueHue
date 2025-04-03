@@ -9,13 +9,13 @@ import {
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
+  Linking,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { BACKEND_URLS } from "../../config"; // Import from config
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebase/firebase";
-
 
 export default function ImagePickerScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -25,6 +25,7 @@ export default function ImagePickerScreen() {
   const [confidence, setConfidence] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState<boolean>(false);
+
   const [reportData, setReportData] = useState<any>(null);
   const [hasGalleryPermission, setHasGalleryPermission] = useState<
     boolean | null
@@ -32,9 +33,21 @@ export default function ImagePickerScreen() {
   const [hasCameraPermission, setHasCameraPermission] = useState<
     boolean | null
   >(null);
+<<<<<<< HEAD
+  // New state to control showing wood type selection buttons
+  const [showWoodTypeButtons, setShowWoodTypeButtons] =
+    useState<boolean>(false);
+
+  const subject = "Check this out!";
+  const body = "Hey, I wanted to share this with you.\n\nBest regards!";
+  const mailtoLink = `mailto:?subject=${encodeURIComponent(
+    subject
+  )}&body=${encodeURIComponent(body)}`;
+=======
 
 
   // Now using BACKEND_URLS from config instead of hardcoded values
+>>>>>>> origin/main
 
   useEffect(() => {
     (async () => {
@@ -69,6 +82,7 @@ export default function ImagePickerScreen() {
       setResponseText(null);
       setPositionScore(null);
       setConfidence(null);
+      setShowWoodTypeButtons(false); // Hide wood type buttons when new image is selected
     }
   };
 
@@ -94,6 +108,7 @@ export default function ImagePickerScreen() {
       setResponseText(null);
       setPositionScore(null);
       setConfidence(null);
+      setShowWoodTypeButtons(false); // Hide wood type buttons when new image is selected
     }
   };
 
@@ -106,93 +121,68 @@ export default function ImagePickerScreen() {
     return "Very Light";
   };
 
-  // Analyze image: first classify, then automatically run the appropriate regression model
-  const analyzeImage = async () => {
+  // Modified analyze function - now shows wood type buttons instead of directly calling endpoints
+  const analyzeImage = () => {
     if (!imageUri || !imageBase64) {
       Alert.alert("No image selected", "Please select an image first.");
       return;
     }
 
+    // Show the wood type selection buttons
+    setShowWoodTypeButtons(true);
+    // Clear any previous results
+    setResponseText(null);
+    setPositionScore(null);
+    setConfidence(null);
+  };
+
+  // New function to handle wood type selection and call respective endpoint
+  const analyzeByWoodType = async (woodType: string) => {
     setIsLoading(true);
     try {
-      // 1. Run classification model
-      const classResponse = await axios.post(
-        BACKEND_URLS.classify,
+      let endpointUrl: string;
+
+      // Determine which endpoint to call based on selected wood type
+      switch (woodType) {
+        case "Medium Cherry":
+          endpointUrl = BACKEND_URLS.medium_cherry;
+          break;
+        case "Desert Oak":
+          endpointUrl = BACKEND_URLS.desert_oak;
+          break;
+        case "Graphite Walnut":
+          endpointUrl = BACKEND_URLS.graphite_walnut;
+          break;
+        default:
+          throw new Error(`Unknown wood type: ${woodType}`);
+      }
+
+      // Call the appropriate endpoint
+      const response = await axios.post(
+        endpointUrl,
         { image: imageBase64, mimeType: "image/jpeg" },
         { headers: { "Content-Type": "application/json" } }
       );
 
-      if (!classResponse.data?.predicted_class) {
-        Alert.alert(
-          "Error",
-          "Unexpected classification response from backend."
-        );
-        return;
+      // Process the response
+      const result = response.data?.result;
+      const isInRange = result === true;
+
+      // Set position score for visualization (optional)
+      if (response.data?.position_score !== undefined) {
+        setPositionScore(response.data.position_score);
+        setConfidence(response.data.confidence || 95); // Default to 95 if not provided
       }
 
-      // Normalize the predicted class: lowercase and remove spaces
-      const predictedClass: string = classResponse.data.predicted_class
-        .toLowerCase()
-        .replace(/\s+/g, "");
-      const classConfidence: number = classResponse.data.confidence;
-      console.log("Classification Result:", predictedClass, classConfidence);
-
-      // If classification returns an unknown type, just display classification results.
-      const resultText = `Predicted Class: ${
-        classResponse.data.predicted_class
-      }\nConfidence: ${classConfidence.toFixed(2)}%`;
-      setResponseText(resultText);
-      Alert.alert("Classification Result", resultText);
-      return;
-
-      /** 
-      
-      // 2. Decide which regression model to call based on classification result
-      let regressionUrl: string | undefined;
-      if (predictedClass.includes("mediumcherry")) {
-        regressionUrl = BACKEND_URLS.medium_cherry;
-      } else if (predictedClass.includes("graphitewalnut")) {
-        regressionUrl = BACKEND_URLS.graphite_walnut;
-      } else {
-        // If classification returns an unknown type, just display classification results.
-        const resultText = `Predicted Class: ${
-          classResponse.data.predicted_class
-        }\nConfidence: ${classConfidence.toFixed(2)}%`;
-        setResponseText(resultText);
-        Alert.alert("Classification Result", resultText);
-        return;
-      }
-        
-
-      // 3. Run the regression model
-      const regResponse = await axios.post(
-        regressionUrl,
-        { image: imageBase64, mimeType: "image/jpeg" },
-        { headers: { "Content-Type": "application/json" } }
-      );
-
-      if (regResponse.data?.position_score === undefined) {
-        Alert.alert("Error", "Unexpected regression response from backend.");
-        return;
-      }
-
-      const regPositionScore: number = regResponse.data.position_score;
-      const regConfidence: number = regResponse.data.confidence;
-      setPositionScore(regPositionScore);
-      setConfidence(regConfidence);
-
-      // 4. Build result text combining classification and regression results
-      const resultText =
-        `Predicted Class: ${classResponse.data.predicted_class}\n` +
-        `Classification Confidence: ${classConfidence.toFixed(2)}%\n\n` +
-        `Regression Position: ${getPositionLabel(
-          regPositionScore
-        )} (${regPositionScore.toFixed(2)})\n` +
-        `Regression Confidence: ${regConfidence.toFixed(2)}%`;
-        
+      // Display the result
+      const resultText = `Wood Type: ${woodType}\nResult: ${
+        isInRange ? "In Range" : "Out of Range"
+      }`;
       setResponseText(resultText);
       Alert.alert("Analysis Result", resultText);
-      */
+
+      // Hide the wood type buttons after analysis
+      setShowWoodTypeButtons(false);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error("Analyze Error:", error.response?.data || error.message);
@@ -207,7 +197,6 @@ export default function ImagePickerScreen() {
       setIsLoading(false);
     }
   };
-  
 
   // Generate Full Report
   const generateFullReport = async () => {
@@ -277,6 +266,7 @@ export default function ImagePickerScreen() {
     setPositionScore(null);
     setConfidence(null);
     setReportData(null);
+    setShowWoodTypeButtons(false); // Hide wood type buttons
   };
 
   // Format specialized test results for display
@@ -333,20 +323,19 @@ export default function ImagePickerScreen() {
     );
   };
 
-
   const saveReport = async () => {
     if (!reportData) {
       Alert.alert("No report available", "Please generate a report first.");
       return;
     }
-  
+
     // Store the report in your preferred storage (e.g., Firebase, local storage)
     try {
       // Save the report to Firebase Firestore
       const docRef = await addDoc(collection(db, "Reports"), {
         Accuracy: reportData.wood_type?.confidence,
         Date: new Date().toISOString(),
-        Wood: reportData.wood_type?.classification || "Unknown"
+        Wood: reportData.wood_type?.classification || "Unknown",
       });
       console.log("Document written with ID: ", docRef.id);
       alert("Report saved successfully!");
@@ -356,6 +345,20 @@ export default function ImagePickerScreen() {
     }
   };
 
+<<<<<<< HEAD
+  const title = "Wood Report Details";
+  const content = `This is a detailed report of your wood analysis. The results are based on the image you provided. The analysis includes the classification of the wood type, confidence levels, and any specialized tests that were performed. Please review the results carefully and let us know if you have any questions or need further assistance. Report Summary: - Wood Type: ${
+    reportData?.wood_type?.classification ?? "Unknown"
+  } - Accuracy: ${
+    reportData?.wood_type?.confidence ?? 0
+  }% - Date: ${new Date().toISOString()} - Specialized Tests: ${
+    reportData?.specialized_tests ? "Available" : "Not Available"
+  } - Color Space: ${reportData?.color_space_used ?? "Not Specified"}`;
+  const mail = `mailto:${""}?subject=${encodeURIComponent(
+    subject
+  )}&body=${encodeURIComponent(body)}`;
+=======
+>>>>>>> origin/main
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
@@ -395,8 +398,33 @@ export default function ImagePickerScreen() {
               </View>
             )}
 
+            {/* Wood Type Selection Buttons - Only show after Analyze is clicked */}
+            {showWoodTypeButtons && !isLoading && (
+              <View style={styles.woodTypeButtonsContainer}>
+                <Text style={styles.woodTypePrompt}>Select wood type:</Text>
+                <TouchableOpacity
+                  style={[styles.button, styles.woodTypeButton]}
+                  onPress={() => analyzeByWoodType("Medium Cherry")}
+                >
+                  <Text style={styles.buttonText}>Medium Cherry</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.woodTypeButton]}
+                  onPress={() => analyzeByWoodType("Desert Oak")}
+                >
+                  <Text style={styles.buttonText}>Desert Oak</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.woodTypeButton]}
+                  onPress={() => analyzeByWoodType("Graphite Walnut")}
+                >
+                  <Text style={styles.buttonText}>Graphite Walnut</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Action Buttons */}
-            {!isLoading && !isGeneratingReport && (
+            {!isLoading && !isGeneratingReport && !showWoodTypeButtons && (
               <View style={styles.buttonRow}>
                 <View style={styles.flexButton}>
                   <TouchableOpacity
@@ -500,8 +528,13 @@ export default function ImagePickerScreen() {
             <Text style={styles.colorSpaceInfo}>
               Color space: {reportData.color_space_used || "rgb"}
             </Text>
+<<<<<<< HEAD
+            <button onClick={() => (window.location.href = mailtoLink)}>
+              Share via Email
+            </button>
+=======
+>>>>>>> origin/main
             <button onClick={saveReport}>Save Report</button>
-
           </View>
         )}
       </View>
@@ -689,5 +722,21 @@ const styles = StyleSheet.create({
   },
   reuploadButton: {
     backgroundColor: "#f44336",
+  },
+  // New styles for wood type buttons
+  woodTypeButtonsContainer: {
+    marginTop: 15,
+    alignItems: "center",
+    width: "100%",
+  },
+  woodTypePrompt: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  woodTypeButton: {
+    marginVertical: 8,
+    width: "80%",
+    backgroundColor: "#4CAF50", // Green color for wood type buttons
   },
 });
