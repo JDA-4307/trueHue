@@ -33,6 +33,7 @@ export default function ImagePickerScreen() {
   const [hasCameraPermission, setHasCameraPermission] = useState<
     boolean | null
   >(null);
+<<<<<<< HEAD
   // New state to control showing wood type selection buttons
   const [showWoodTypeButtons, setShowWoodTypeButtons] =
     useState<boolean>(false);
@@ -42,6 +43,11 @@ export default function ImagePickerScreen() {
   const mailtoLink = `mailto:?subject=${encodeURIComponent(
     subject
   )}&body=${encodeURIComponent(body)}`;
+=======
+
+
+  // Now using BACKEND_URLS from config instead of hardcoded values
+>>>>>>> origin/main
 
   useEffect(() => {
     (async () => {
@@ -339,6 +345,7 @@ export default function ImagePickerScreen() {
     }
   };
 
+<<<<<<< HEAD
   const title = "Wood Report Details";
   const content = `This is a detailed report of your wood analysis. The results are based on the image you provided. The analysis includes the classification of the wood type, confidence levels, and any specialized tests that were performed. Please review the results carefully and let us know if you have any questions or need further assistance. Report Summary: - Wood Type: ${
     reportData?.wood_type?.classification ?? "Unknown"
@@ -350,6 +357,8 @@ export default function ImagePickerScreen() {
   const mail = `mailto:${""}?subject=${encodeURIComponent(
     subject
   )}&body=${encodeURIComponent(body)}`;
+=======
+>>>>>>> origin/main
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
@@ -519,9 +528,12 @@ export default function ImagePickerScreen() {
             <Text style={styles.colorSpaceInfo}>
               Color space: {reportData.color_space_used || "rgb"}
             </Text>
+<<<<<<< HEAD
             <button onClick={() => (window.location.href = mailtoLink)}>
               Share via Email
             </button>
+=======
+>>>>>>> origin/main
             <button onClick={saveReport}>Save Report</button>
           </View>
         )}
