@@ -14,6 +14,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS  # Import CORS
 import cv2;
 
+
+
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
@@ -27,6 +29,7 @@ logger = logging.getLogger(__name__)
 MODELS = {
     'default': './assets/models/wood_classification.tflite',
     'binary_model_graphite_walnut': './assets/models/binary_model_graphite_walnut.tflite',
+    'binary_model_medium_cherry': './assets/models/binary_model_medium_cherry.tflite',
     'multiclass_model_graphite_walnut': './assets/models/multiclass_model_graphite_walnut.tflite',
     'regression_model_graphite_walnut': './assets/models/regression_model_graphite_walnut.tflite',
     
@@ -39,7 +42,8 @@ MODELS = {
 # Define class names for each model
 CLASS_NAMES = {
     'default': ['desert_oak', 'graphite_walnut', 'medium_cherry'],
-    'binary_model_graphite_walnut': ['Not GraphiteWalnut', 'graphiteWalnut'],
+    'binary_model_graphite_walnut': ['Out of Range', 'In Range'],
+    'binary_model_medium_cherry': ['Out of Range', 'In Range'],
     'multiclass_model_graphite_walnut': ['mediumCherry', 'desertOak', 'graphiteWalnut', 'other'],
     # No classes for regression model
     # For validation models - assume binary [Not Valid, Valid]
@@ -566,6 +570,7 @@ def validate_graphite_walnut():
         logger.error(f"Error in graphite walnut validation endpoint: {e}")
         return jsonify({"error": str(e)}), 500
 
+
 # Full report endpoint
 @app.route('/generate-full-report', methods=['POST'])
 def generate_full_report():
@@ -623,7 +628,7 @@ def generate_full_report():
                     CLASS_NAMES[binary_model_name]
                 )
                 report["specialized_tests"]["binary"] = binary_result
-            
+            '''
             # 2.2 Multiclass classification
             multiclass_model_name = 'multiclass_model_graphite_walnut'
             multiclass_interpreter = interpreters.get(multiclass_model_name)
@@ -644,14 +649,145 @@ def generate_full_report():
                     preprocessed_image
                 )
                 report["specialized_tests"]["regression"] = regression_result
+                '''
                 
             # Future extension point for medium cherry and desert oak tests
+        if wood_type == "medium_cherry":
+            logger.info("Running specialized tests for medium cherry")
             
+            # 2.1 Binary classification
+            binary_model_name = 'binary_model_medium_cherry'
+            binary_interpreter = interpreters.get(binary_model_name)
+            if binary_interpreter:
+                binary_result = predict_classification(
+                    binary_interpreter,
+                    preprocessed_image,
+                    CLASS_NAMES[binary_model_name]
+                )
+                report["specialized_tests"]["binary"] = binary_result
+            '''
+            # 2.2 Multiclass classification
+            multiclass_model_name = 'multiclass_model_graphite_walnut'
+            multiclass_interpreter = interpreters.get(multiclass_model_name)
+            if multiclass_interpreter:
+                multiclass_result = predict_classification(
+                    multiclass_interpreter,
+                    preprocessed_image,
+                    CLASS_NAMES[multiclass_model_name]
+                )
+                report["specialized_tests"]["multiclass"] = multiclass_result
+            
+            # 2.3 Regression model
+            regression_model_name = 'regression_model_graphite_walnut'
+            regression_interpreter = interpreters.get(regression_model_name)
+            if regression_interpreter:
+                regression_result = predict_regression(
+                    regression_interpreter,
+                    preprocessed_image
+                )
+                report["specialized_tests"]["regression"] = regression_result
+            '''
         return jsonify(report)
+    
+    
 
     except Exception as e:
         logger.error(f"Error generating full report: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+
+@app.route('/rgb-difference', methods=['POST'])
+def calculate_rgb_difference():
+    """
+    Calculate the RGB Euclidean difference between two images.
+    
+    Expects a POST request with JSON containing:
+    {
+        "image1": "base64_encoded_image_string",
+        "image2": "base64_encoded_image_string"
+    }
+    """
+    try:
+        # Get JSON data from request
+        data = request.get_json()
+        
+        if not data or 'image1' not in data or 'image2' not in data:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing required image data'
+            }), 400
+        
+        # Decode base64 images
+        try:
+            image1_data = base64.b64decode(data['image1'].split(',')[1] if ',' in data['image1'] else data['image1'])
+            image2_data = base64.b64decode(data['image2'].split(',')[1] if ',' in data['image2'] else data['image2'])
+        except:
+            return jsonify({
+                'status': 'error',
+                'message': 'Invalid base64 image data'
+            }), 400
+        
+        # Open images with PIL
+        image1 = Image.open(io.BytesIO(image1_data))
+        image2 = Image.open(io.BytesIO(image2_data))
+        
+        # Resize images to a standard size for comparison
+        standard_size = (300, 300)
+        image1 = image1.resize(standard_size)
+        image2 = image2.resize(standard_size)
+        
+        # Convert images to RGB if they aren't already
+        if image1.mode != 'RGB':
+            image1 = image1.convert('RGB')
+        if image2.mode != 'RGB':
+            image2 = image2.convert('RGB')
+        
+        # Convert to numpy arrays for efficient calculation
+        img1_array = np.array(image1)
+        img2_array = np.array(image2)
+        
+        # Calculate Euclidean distance
+        difference = calculate_euclidean_distance(img1_array, img2_array)
+        
+        # Return the result
+        return jsonify({
+            'status': 'success',
+            'difference': float(difference),
+            'normalized_difference': float(min(100, difference / 2.55)),  # Normalize to 0-100 scale
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error calculating RGB difference: {str(e)}'
+        }), 500
+
+def calculate_euclidean_distance(img1_array, img2_array):
+    """
+    Calculate the average Euclidean distance between corresponding pixels in two images.
+    
+    Args:
+        img1_array: NumPy array of the first image
+        img2_array: NumPy array of the second image
+        
+    Returns:
+        float: The average RGB Euclidean distance
+    """
+    # Ensure both arrays have the same shape
+    if img1_array.shape != img2_array.shape:
+        raise ValueError("Images must have the same dimensions")
+    
+    # Calculate squared differences for each RGB channel
+    r_diff = (img1_array[:,:,0].astype(float) - img2_array[:,:,0].astype(float)) ** 2
+    g_diff = (img1_array[:,:,1].astype(float) - img2_array[:,:,1].astype(float)) ** 2
+    b_diff = (img1_array[:,:,2].astype(float) - img2_array[:,:,2].astype(float)) ** 2
+    
+    # Sum the channel differences for each pixel
+    pixel_diff = np.sqrt(r_diff + g_diff + b_diff)
+    
+    # Return the average difference across all pixels
+    return np.mean(pixel_diff)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=3050, debug=False)

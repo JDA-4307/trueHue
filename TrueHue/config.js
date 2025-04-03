@@ -20,6 +20,9 @@ export const BACKEND_URLS = {
   binary_graphite_walnut: `${API_URL}/predict/binary/graphite_walnut`, // Binary classification
   multiclass_graphite_walnut: `${API_URL}/predict/multiclass/graphite_walnut`, // Multiclass classification
   regression_graphite_walnut: `${API_URL}/predict/regression/graphite_walnut`, // Regression model
+
+  rgbDifference: `${API_URL}/rgb-difference`, // rgb difference calculation given two images
+
   baseUrl: API_URL, // Base URL for constructing other endpoints
 };
 
