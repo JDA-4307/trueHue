@@ -194,10 +194,9 @@ export default function ImagePickerScreen() {
 
       // Combine the results
       const resultText = `Wood Type: ${woodType}
-      Result: ${isInRange ? "In Range" : "Out of Range"}
       RGB Analysis:
       Category: ${predictedCategory}
-      Main Category: ${
+      Result: ${
         mainCategory === "in-range" ? "In Range" : "Out of Range"
       }
       `;
@@ -234,9 +233,7 @@ export default function ImagePickerScreen() {
       Alert.alert("No image selected", "Please select an image first.");
       return;
     }
-    setResponseText(null);
-    setPositionScore(null);
-    setConfidence(null);
+   
     setIsGeneratingReport(true);
     try {
       // Call the full report endpoint
@@ -543,7 +540,7 @@ export default function ImagePickerScreen() {
             </View>
 
             {/* Specialized Tests */}
-            {renderSpecializedTests()}
+            {/* {renderSpecializedTests()} */}
 
             {/* Color Space Info */}
             <Text style={styles.colorSpaceInfo}>
