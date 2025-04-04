@@ -10,21 +10,76 @@ import io
 import numpy as np
 from flask import Flask, request, jsonify
 from skimage import color
-from flask import Flask, request, jsonify
-from flask_cors import CORS  # Import CORS
-import cv2;
-
-
+from flask_cors import CORS
+import cv2
+import os
+import uuid
+import tempfile
+import pandas as pd
+from scipy.spatial.distance import euclidean
+from tqdm import tqdm
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+# Enable CORS with explicit settings
+CORS(app, resources={r"/*": {
+    "origins": "*", 
+    "methods": ["GET", "POST", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization"]
+}})
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ============= RGB CLASSIFIER CONFIGURATION =============
+# Base dataset path
 
+import os
 
+# Get the absolute path to the directory where the script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Base dataset path (using absolute path)
+BASE_DATASET_PATH = os.path.join(SCRIPT_DIR, "images-dataset-4.0")
+
+# Mapping of colors to their respective dataset paths and reference profiles
+COLOR_CONFIG = {
+    "medium-cherry": {
+        "dataset_path": os.path.join(BASE_DATASET_PATH, "medium-cherry"),
+        "reference_csv": os.path.join(SCRIPT_DIR, "category_distances_normalized_medium_cherry.csv")
+    },
+    "desert-oak": {
+        "dataset_path": os.path.join(BASE_DATASET_PATH, "desert-oak"),
+        "reference_csv": os.path.join(SCRIPT_DIR, "category_distances_normalized_desert_oak.csv")
+    },
+    "graphite-walnut": {
+        "dataset_path": os.path.join(BASE_DATASET_PATH, "graphite-walnut"),
+        "reference_csv": os.path.join(SCRIPT_DIR, "category_distances_normalized_graphite_walnut.csv")
+    }
+}
+
+# Add this debug code right after the imports
+print(f"Script directory: {SCRIPT_DIR}")
+print(f"Base dataset path: {BASE_DATASET_PATH}")
+for color, config in COLOR_CONFIG.items():
+    print(f"{color} dataset path: {config['dataset_path']}")
+    print(f"{color} reference CSV: {config['reference_csv']}")
+    print(f"  Dataset path exists: {os.path.exists(config['dataset_path'])}")
+    print(f"  Reference CSV exists: {os.path.exists(config['reference_csv'])}")
+
+# Categories in order (must match the CSV columns)
+CATEGORIES = [
+    "out-of-range-too-light",
+    "in-range-light",
+    "in-range-standard", 
+    "in-range-dark",
+    "out-of-range-too-dark"
+]
+
+VALID_COLORS = list(COLOR_CONFIG.keys())
+# =========================================================
+
+# ============= TENSORFLOW MODEL CONFIGURATION =============
 # Path to TFLite models
 MODELS = {
     'default': './assets/models/wood_classification.tflite',
@@ -36,7 +91,6 @@ MODELS = {
     'validation_model_medium_cherry': './assets/models/medium-cherry_classifier_model_lab.tflite',
     'validation_model_desert_oak':'./assets/models/desert-oak_classifier_model_lab.tflite',
     'validation_model_graphite_walnut': './assets/models/graphite-walnut_classifier_model_lab.tflite'
-    
 }
 
 # Define class names for each model
@@ -65,7 +119,273 @@ for model_name, model_path in MODELS.items():
 # Define image dimensions
 img_height = 224
 img_width = 224
+# =========================================================
 
+# ============= RGB CLASSIFIER FUNCTIONS =============
+def calculate_euclidean_distance(img_path1, img_path2, resize_to=(300, 300)):
+    """
+    Calculate the RGB Euclidean distance between two images.
+    
+    Args:
+        img_path1: Path to first image
+        img_path2: Path to second image
+        resize_to: Tuple (width, height) to resize images for comparison
+        
+    Returns:
+        float: The average RGB Euclidean distance
+    """
+    try:
+        # Load images
+        img1 = Image.open(img_path1)
+        img2 = Image.open(img_path2)
+        
+        # Resize images to a standard size for comparison
+        img1 = img1.resize(resize_to)
+        img2 = img2.resize(resize_to)
+        
+        # Convert images to RGB if they aren't already
+        if img1.mode != 'RGB':
+            img1 = img1.convert('RGB')
+        if img2.mode != 'RGB':
+            img2 = img2.convert('RGB')
+        
+        # Convert to numpy arrays for efficient calculation
+        img1_array = np.array(img1)
+        img2_array = np.array(img2)
+        
+        # Calculate squared differences for each RGB channel
+        r_diff = (img1_array[:,:,0].astype(float) - img2_array[:,:,0].astype(float)) ** 2
+        g_diff = (img1_array[:,:,1].astype(float) - img2_array[:,:,1].astype(float)) ** 2
+        b_diff = (img1_array[:,:,2].astype(float) - img2_array[:,:,2].astype(float)) ** 2
+        
+        # Sum the channel differences for each pixel
+        pixel_diff = np.sqrt(r_diff + g_diff + b_diff)
+        
+        # Return the average difference across all pixels
+        return np.mean(pixel_diff)
+    except Exception as e:
+        print(f"Error comparing images: {str(e)}")
+        return np.nan
+
+def get_image_paths_from_category(category_path, max_images=None):
+    """
+    Get paths to all images in a category folder.
+    
+    Args:
+        category_path: Path to the category folder
+        max_images: Maximum number of images to include (optional, for sampling)
+        
+    Returns:
+        list: List of image paths
+    """
+    valid_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+    
+    image_paths = [
+        os.path.join(category_path, f) for f in os.listdir(category_path)
+        if os.path.isfile(os.path.join(category_path, f)) and
+        os.path.splitext(f)[1].lower() in valid_extensions
+    ]
+    
+    # Optionally limit the number of images
+    if max_images and len(image_paths) > max_images:
+        np.random.seed(42)  # For reproducibility
+        image_paths = np.random.choice(image_paths, max_images, replace=False).tolist()
+    
+    return image_paths
+
+def calculate_image_distribution(input_image_path, dataset_path, max_images_per_category=None, normalize=True):
+    """
+    Calculate the average RGB Euclidean distance between the input image and
+    all images in each category.
+    
+    Args:
+        input_image_path: Path to the input image
+        dataset_path: Path to the dataset root folder
+        max_images_per_category: Maximum number of images to use from each category
+        normalize: Whether to normalize distances to 0-100 scale
+        
+    Returns:
+        pandas.Series: Average distances to each category
+    """
+    if not os.path.exists(input_image_path):
+        raise ValueError(f"Input image path does not exist: {input_image_path}")
+    
+    # Dictionary to store distances
+    distances = {cat: [] for cat in CATEGORIES}
+    
+    print("Calculating distances between input image and each category...")
+    
+    for category in CATEGORIES:
+        category_path = os.path.join(dataset_path, category)
+        
+        if not os.path.exists(category_path):
+            print(f"Warning: Category path not found: {category_path}")
+            continue
+            
+        category_images = get_image_paths_from_category(category_path, max_images_per_category)
+        print(f"  Processing {len(category_images)} images from {category}...")
+        
+        for image_path in category_images:  # Removing tqdm for server environment
+            distance = calculate_euclidean_distance(input_image_path, image_path)
+            distances[category].append(distance)
+    
+    # Calculate average distance for each category
+    avg_distances = {}
+    for category, dist_list in distances.items():
+        if dist_list:
+            avg_distances[category] = np.nanmean(dist_list)
+        else:
+            avg_distances[category] = np.nan
+    
+    # Convert to pandas Series
+    distance_profile = pd.Series(avg_distances)
+    
+    # Normalize if requested
+    if normalize:
+        normalized_profile = pd.Series({
+            category: min(100, distance / 2.55) if not np.isnan(distance) else np.nan
+            for category, distance in avg_distances.items()
+        })
+        return normalized_profile
+    else:
+        return distance_profile
+
+def load_reference_profiles(csv_path):
+    """
+    Load reference category profiles from CSV.
+    
+    Args:
+        csv_path: Path to the CSV with category distance profiles
+        
+    Returns:
+        pandas.DataFrame: Reference profiles
+    """
+    if not os.path.exists(csv_path):
+        raise ValueError(f"Reference profiles CSV not found: {csv_path}")
+    
+    try:
+        # Load the CSV
+        df = pd.read_csv(csv_path, index_col=0)
+        print(f"Loaded reference profiles with shape: {df.shape}")
+        return df
+    except Exception as e:
+        raise ValueError(f"Error loading reference profiles: {str(e)}")
+
+def classify_image(image_profile, reference_profiles):
+    """
+    Classify the image by finding the most similar category profile.
+    
+    Args:
+        image_profile: Series with distances to each category
+        reference_profiles: DataFrame with reference category profiles
+        
+    Returns:
+        tuple: (predicted_category, similarity_scores)
+    """
+    # Calculate similarity score (using Euclidean distance between profiles)
+    similarity_scores = {}
+    
+    for category in reference_profiles.index:
+        category_profile = reference_profiles.loc[category]
+        
+        # Calculate distance between profiles (lower = more similar)
+        profile_distance = euclidean(
+            image_profile.fillna(0),  # Replace NaN with 0 for calculation
+            category_profile.fillna(0)
+        )
+        
+        # Convert to similarity score (higher = more similar)
+        similarity_scores[category] = 1 / (1 + profile_distance)
+    
+    # Find the most similar category
+    similarity_series = pd.Series(similarity_scores)
+    predicted_category = similarity_series.idxmax()
+    
+    return predicted_category, similarity_series
+
+def get_main_category(category):
+    """
+    Get the main category (in-range or out-of-range) from the detailed category.
+    
+    Args:
+        category: Detailed category name
+        
+    Returns:
+        str: 'in-range' or 'out-of-range'
+    """
+    if category.startswith('out-of-range'):
+        return 'out-of-range'
+    elif category.startswith('in-range'):
+        return 'in-range'
+    else:
+        return 'unknown'
+
+def classify_image_api(input_image_path, color="medium-cherry", max_images=20, verbose=False):
+    """
+    API function for classifying a single image that can be called from external code.
+    
+    Args:
+        input_image_path: Path to the input image
+        color: Wood color to use for classification (medium-cherry, desert-oak, graphite-walnut)
+        max_images: Maximum number of images to use per category for comparison
+        verbose: Whether to print detailed information
+        
+    Returns:
+        dict: Classification results
+    """
+    try:
+        # Get configuration for the specified color
+        if color not in COLOR_CONFIG:
+            raise ValueError(f"Invalid color: {color}. Valid options are: {list(COLOR_CONFIG.keys())}")
+        
+        config = COLOR_CONFIG[color]
+        dataset_path = config["dataset_path"]
+        reference_csv = config["reference_csv"]
+        
+        if verbose:
+            print(f"Processing image with color: {color}")
+            print(f"Dataset path: {dataset_path}")
+            print(f"Reference CSV: {reference_csv}")
+        
+        # Load reference profiles
+        reference_profiles = load_reference_profiles(reference_csv)
+        
+        # Calculate distance profile
+        image_profile = calculate_image_distribution(
+            input_image_path, dataset_path, max_images, normalize=True
+        )
+        
+        # Classify the image
+        predicted_category, similarity_scores = classify_image(image_profile, reference_profiles)
+        
+        # Get main category
+        main_category = get_main_category(predicted_category)
+        
+        # Prepare result
+        result = {
+            "image_path": input_image_path,
+            "color": color,
+            "predicted_category": predicted_category,
+            "main_category": main_category,
+            "similarity_scores": {k: float(v) for k, v in similarity_scores.items()},
+            "distance_profile": {k: float(v) for k, v in image_profile.items()}
+        }
+        
+        if verbose:
+            print(f"Predicted category: {predicted_category}")
+            print(f"Main category: {main_category}")
+        
+        return result
+        
+    except Exception as e:
+        error_message = f"Error classifying image: {str(e)}"
+        print(error_message)
+        import traceback
+        traceback.print_exc()
+        return {"error": error_message}
+# =========================================================
+
+# ============= TENSORFLOW FUNCTIONS =============
 def preprocess_image(base64_string, color_space='lab'):
     """
     Preprocess image with optional color space conversion
@@ -196,171 +516,7 @@ def predict_regression(interpreter, preprocessed_image):
     except Exception as e:
         logger.error(f"Error during regression prediction: {e}")
         return {"error": f"An error occurred during prediction: {str(e)}"}
-
-@app.route('/', methods=['GET'])
-def health_check():
-    """
-    Simple endpoint to check if the backend server is running
-    """
-    return "Backend server is running! All systems operational."
-
-# Original endpoint
-
-
-@app.route('/predict', methods=['POST'])
-def predict():
-    try:
-        # Get JSON data from request
-        data = request.json
         
-        image = data.get("image")
-        mime_type = data.get("mimeType")
-
-        if not image or not mime_type:
-            return jsonify({"error": "Invalid input - missing image or mimeType"}), 400
-
-        # Use default model
-        interpreter = interpreters.get('default')
-        if not interpreter:
-            return jsonify({"error": "Model not loaded"}), 500
-
-        preprocessed_image = preprocess_image(image)
-        if preprocessed_image is None:
-            return jsonify({"error": "Error processing image"}), 400
-
-        result = predict_classification(
-            interpreter, 
-            preprocessed_image, 
-            CLASS_NAMES['default']
-        )
-        
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Error in prediction endpoint: {e}")
-        return jsonify({"error": str(e)}), 500
-
-# Binary classification endpoint
-@app.route('/predict/binary/graphite_walnut', methods=['POST'])
-def predict_binary_graphite_walnut():
-    try:
-        # Get JSON data from request
-        data = request.json
-        
-        image = data.get("image")
-        mime_type = data.get("mimeType")
-        # Get color space parameter (default to 'lab' for wood color classification)
-        color_space = data.get("colorSpace", "lab")
-
-        if not image or not mime_type:
-            return jsonify({"error": "Invalid input - missing image or mimeType"}), 400
-
-        # Use binary model
-        model_name = 'binary_model_graphite_walnut'
-        interpreter = interpreters.get(model_name)
-        if not interpreter:
-            return jsonify({"error": f"Model {model_name} not loaded"}), 500
-
-        preprocessed_image = preprocess_image(image, color_space)
-        if preprocessed_image is None:
-            return jsonify({"error": "Error processing image"}), 400
-
-        result = predict_classification(
-            interpreter, 
-            preprocessed_image, 
-            CLASS_NAMES[model_name]
-        )
-        
-        # Add color space info to result
-        result["color_space_used"] = color_space
-        
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Error in binary prediction endpoint: {e}")
-        return jsonify({"error": str(e)}), 500
-
-# Multiclass classification endpoint
-@app.route('/predict/multiclass/graphite_walnut', methods=['POST'])
-def predict_multiclass_graphite_walnut():
-    try:
-        # Get JSON data from request
-        data = request.json
-        
-        image = data.get("image")
-        mime_type = data.get("mimeType")
-        # Get color space parameter (default to 'lab' for wood color classification)
-        color_space = data.get("colorSpace", "lab")
-
-        if not image or not mime_type:
-            return jsonify({"error": "Invalid input - missing image or mimeType"}), 400
-
-        # Use multiclass model
-        model_name = 'multiclass_model_graphite_walnut'
-        interpreter = interpreters.get(model_name)
-        if not interpreter:
-            return jsonify({"error": f"Model {model_name} not loaded"}), 500
-
-        preprocessed_image = preprocess_image(image, color_space)
-        if preprocessed_image is None:
-            return jsonify({"error": "Error processing image"}), 400
-
-        result = predict_classification(
-            interpreter, 
-            preprocessed_image, 
-            CLASS_NAMES[model_name]
-        )
-        
-        # Add color space info to result
-        result["color_space_used"] = color_space
-        
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Error in multiclass prediction endpoint: {e}")
-        return jsonify({"error": str(e)}), 500
-
-# Regression endpoint
-@app.route('/predict/regression/graphite_walnut', methods=['POST'])
-def predict_regression_graphite_walnut():
-    try:
-        # Get JSON data from request
-        data = request.json
-        
-        image = data.get("image")
-        mime_type = data.get("mimeType")
-        # Get color space parameter (default to 'lab' for wood color classification)
-        color_space = data.get("colorSpace", "lab")
-
-        if not image or not mime_type:
-            return jsonify({"error": "Invalid input - missing image or mimeType"}), 400
-
-        # Use regression model
-        model_name = 'regression_model_graphite_walnut'
-        interpreter = interpreters.get(model_name)
-        if not interpreter:
-            return jsonify({"error": f"Model {model_name} not loaded"}), 500
-
-        preprocessed_image = preprocess_image(image, color_space)
-        if preprocessed_image is None:
-            return jsonify({"error": "Error processing image"}), 400
-
-        result = predict_regression(
-            interpreter, 
-            preprocessed_image
-        )
-        
-        # Add color space info to result
-        result["color_space_used"] = color_space
-        
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Error in regression prediction endpoint: {e}")
-        return jsonify({"error": str(e)}), 500
-
-# NEW ENDPOINTS - Wood Validation
-
 def predict_binary_classification(interpreter, preprocessed_image, threshold=0.5):
     """
     Process a binary classification model with sigmoid output.
@@ -416,6 +572,56 @@ def predict_binary_classification(interpreter, preprocessed_image, threshold=0.5
     except Exception as e:
         logger.error(f"Error during binary classification prediction: {e}")
         return {"error": f"An error occurred during prediction: {str(e)}"}
+# =========================================================
+
+# ============= API ENDPOINTS =============
+@app.route('/', methods=['GET'])
+def health_check():
+    """
+    Simple endpoint to check if the backend server is running
+    """
+    return "Backend server is running! All systems operational."
+
+@app.after_request
+def add_cors_headers(response):
+    """Add CORS headers to every response"""
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    try:
+        # Get JSON data from request
+        data = request.json
+        
+        image = data.get("image")
+        mime_type = data.get("mimeType")
+
+        if not image or not mime_type:
+            return jsonify({"error": "Invalid input - missing image or mimeType"}), 400
+
+        # Use default model
+        interpreter = interpreters.get('default')
+        if not interpreter:
+            return jsonify({"error": "Model not loaded"}), 500
+
+        preprocessed_image = preprocess_image(image)
+        if preprocessed_image is None:
+            return jsonify({"error": "Error processing image"}), 400
+
+        result = predict_classification(
+            interpreter, 
+            preprocessed_image, 
+            CLASS_NAMES['default']
+        )
+        
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error in prediction endpoint: {e}")
+        return jsonify({"error": str(e)}), 500
 
 # Medium Cherry Validation Endpoint
 @app.route('/validate/medium_cherry', methods=['POST'])
@@ -570,7 +776,6 @@ def validate_graphite_walnut():
         logger.error(f"Error in graphite walnut validation endpoint: {e}")
         return jsonify({"error": str(e)}), 500
 
-
 # Full report endpoint
 @app.route('/generate-full-report', methods=['POST'])
 def generate_full_report():
@@ -628,30 +833,7 @@ def generate_full_report():
                     CLASS_NAMES[binary_model_name]
                 )
                 report["specialized_tests"]["binary"] = binary_result
-            '''
-            # 2.2 Multiclass classification
-            multiclass_model_name = 'multiclass_model_graphite_walnut'
-            multiclass_interpreter = interpreters.get(multiclass_model_name)
-            if multiclass_interpreter:
-                multiclass_result = predict_classification(
-                    multiclass_interpreter,
-                    preprocessed_image,
-                    CLASS_NAMES[multiclass_model_name]
-                )
-                report["specialized_tests"]["multiclass"] = multiclass_result
-            
-            # 2.3 Regression model
-            regression_model_name = 'regression_model_graphite_walnut'
-            regression_interpreter = interpreters.get(regression_model_name)
-            if regression_interpreter:
-                regression_result = predict_regression(
-                    regression_interpreter,
-                    preprocessed_image
-                )
-                report["specialized_tests"]["regression"] = regression_result
-                '''
                 
-            # Future extension point for medium cherry and desert oak tests
         if wood_type == "medium_cherry":
             logger.info("Running specialized tests for medium cherry")
             
@@ -665,37 +847,12 @@ def generate_full_report():
                     CLASS_NAMES[binary_model_name]
                 )
                 report["specialized_tests"]["binary"] = binary_result
-            '''
-            # 2.2 Multiclass classification
-            multiclass_model_name = 'multiclass_model_graphite_walnut'
-            multiclass_interpreter = interpreters.get(multiclass_model_name)
-            if multiclass_interpreter:
-                multiclass_result = predict_classification(
-                    multiclass_interpreter,
-                    preprocessed_image,
-                    CLASS_NAMES[multiclass_model_name]
-                )
-                report["specialized_tests"]["multiclass"] = multiclass_result
-            
-            # 2.3 Regression model
-            regression_model_name = 'regression_model_graphite_walnut'
-            regression_interpreter = interpreters.get(regression_model_name)
-            if regression_interpreter:
-                regression_result = predict_regression(
-                    regression_interpreter,
-                    preprocessed_image
-                )
-                report["specialized_tests"]["regression"] = regression_result
-            '''
+
         return jsonify(report)
     
-    
-
     except Exception as e:
         logger.error(f"Error generating full report: {e}")
         return jsonify({"error": str(e)}), 500
-
-
 
 @app.route('/rgb-difference', methods=['POST'])
 def calculate_rgb_difference():
@@ -747,8 +904,16 @@ def calculate_rgb_difference():
         img1_array = np.array(image1)
         img2_array = np.array(image2)
         
-        # Calculate Euclidean distance
-        difference = calculate_euclidean_distance(img1_array, img2_array)
+        # Calculate Euclidean distance using numpy directly
+        r_diff = (img1_array[:,:,0].astype(float) - img2_array[:,:,0].astype(float)) ** 2
+        g_diff = (img1_array[:,:,1].astype(float) - img2_array[:,:,1].astype(float)) ** 2
+        b_diff = (img1_array[:,:,2].astype(float) - img2_array[:,:,2].astype(float)) ** 2
+        
+        # Sum the channel differences for each pixel
+        pixel_diff = np.sqrt(r_diff + g_diff + b_diff)
+        
+        # Average difference across all pixels
+        difference = np.mean(pixel_diff)
         
         # Return the result
         return jsonify({
@@ -763,31 +928,132 @@ def calculate_rgb_difference():
             'message': f'Error calculating RGB difference: {str(e)}'
         }), 500
 
-def calculate_euclidean_distance(img1_array, img2_array):
+# RGB Classifier Endpoint
+@app.route('/api/classify-wood', methods=['POST', 'OPTIONS'])
+def classify_wood_rgb():
     """
-    Calculate the average Euclidean distance between corresponding pixels in two images.
+    Endpoint to classify wood veneer images using base64-encoded images.
     
-    Args:
-        img1_array: NumPy array of the first image
-        img2_array: NumPy array of the second image
-        
+    Expects JSON with:
+    - 'image': A base64-encoded image string
+    - 'color': One of 'medium-cherry', 'desert-oak', or 'graphite-walnut'
+    
     Returns:
-        float: The average RGB Euclidean distance
+    - JSON with classification results
     """
-    # Ensure both arrays have the same shape
-    if img1_array.shape != img2_array.shape:
-        raise ValueError("Images must have the same dimensions")
-    
-    # Calculate squared differences for each RGB channel
-    r_diff = (img1_array[:,:,0].astype(float) - img2_array[:,:,0].astype(float)) ** 2
-    g_diff = (img1_array[:,:,1].astype(float) - img2_array[:,:,1].astype(float)) ** 2
-    b_diff = (img1_array[:,:,2].astype(float) - img2_array[:,:,2].astype(float)) ** 2
-    
-    # Sum the channel differences for each pixel
-    pixel_diff = np.sqrt(r_diff + g_diff + b_diff)
-    
-    # Return the average difference across all pixels
-    return np.mean(pixel_diff)
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        return response
+        
+    try:
+        # Get request data and log it for debugging
+        data = request.get_json()
+        logger.info(f"Received request to /api/classify-wood with data keys: {list(data.keys()) if data else None}")
+        
+        # Check if image data is provided
+        if not data or 'image' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'No image data provided'
+            }), 400
+        
+        # Get base64 image data
+        base64_image = data.get('image', '')
+        
+        # Check if the base64 string is empty
+        if not base64_image:
+            return jsonify({
+                'success': False,
+                'error': 'Empty image data'
+            }), 400
+        
+        # Get color parameter
+        color = data.get('color', 'medium-cherry')
+        
+        # Validate color
+        if color not in VALID_COLORS:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid color. Must be one of: {", ".join(VALID_COLORS)}'
+            }), 400
+        
+        logger.info(f"Processing image with color: {color}")
+        
+        # Process the base64 image string (remove data URI prefix if present)
+        if ',' in base64_image:
+            # Handle data URLs like "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+            base64_image = base64_image.split(',', 1)[1]
+        
+        # Decode base64 image data
+        try:
+            image_data = base64.b64decode(base64_image)
+        except Exception as e:
+            logger.error(f"Invalid base64 image data: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': f'Invalid base64 image data: {str(e)}'
+            }), 400
+        
+        # Create a temporary file to save the image
+        temp_dir = tempfile.gettempdir()
+        temp_filename = f"{uuid.uuid4()}.jpg"
+        temp_path = os.path.join(temp_dir, temp_filename)
+        
+        # Save the decoded image data to the temporary file
+        try:
+            # First verify it's a valid image by opening it with PIL
+            image = Image.open(io.BytesIO(image_data))
+            image.save(temp_path)
+            logger.info(f"Saved image to temporary file: {temp_path}")
+        except Exception as e:
+            logger.error(f"Invalid image data: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': f'Invalid image data: {str(e)}'
+            }), 400
+        
+        # Process the image using our integrated classifier function
+        try:
+            result = classify_image_api(temp_path, color, max_images=20, verbose=True)
+            logger.info(f"Classification result: {result}")
+        except Exception as e:
+            logger.error(f"Error in classification: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            result = {"error": f"Classification error: {str(e)}"}
+        
+        # Clean up the temporary file
+        try:
+            os.remove(temp_path)
+        except Exception as e:
+            logger.warning(f"Failed to delete temporary file: {e}")
+        
+        # Check if there was an error in classification
+        if 'error' in result:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 500
+        
+        # Return success response
+        return jsonify({
+            'success': True,
+            'color': color,
+            'predicted_category': result['predicted_category'],
+            'main_category': result['main_category'],
+            'similarity_scores': result['similarity_scores']
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in classify_wood_rgb endpoint: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'Error processing image: {str(e)}'
+        }), 500
+# =========================================================
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=3050, debug=False)
+    app.run(host='0.0.0.0', port=3050, debug=True)

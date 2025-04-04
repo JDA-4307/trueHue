@@ -33,7 +33,6 @@ export default function ImagePickerScreen() {
   const [hasCameraPermission, setHasCameraPermission] = useState<
     boolean | null
   >(null);
-<<<<<<< HEAD
   // New state to control showing wood type selection buttons
   const [showWoodTypeButtons, setShowWoodTypeButtons] =
     useState<boolean>(false);
@@ -43,11 +42,6 @@ export default function ImagePickerScreen() {
   const mailtoLink = `mailto:?subject=${encodeURIComponent(
     subject
   )}&body=${encodeURIComponent(body)}`;
-=======
-
-
-  // Now using BACKEND_URLS from config instead of hardcoded values
->>>>>>> origin/main
 
   useEffect(() => {
     (async () => {
@@ -136,48 +130,80 @@ export default function ImagePickerScreen() {
     setConfidence(null);
   };
 
-  // New function to handle wood type selection and call respective endpoint
+  // New function to handle wood type selection and call both endpoints
   const analyzeByWoodType = async (woodType: string) => {
     setIsLoading(true);
     try {
       let endpointUrl: string;
+      let rgbWoodType: string; // For the RGB analysis endpoint
 
       // Determine which endpoint to call based on selected wood type
+      // and set the corresponding RGB wood type
       switch (woodType) {
         case "Medium Cherry":
           endpointUrl = BACKEND_URLS.medium_cherry;
+          rgbWoodType = "medium-cherry";
           break;
         case "Desert Oak":
           endpointUrl = BACKEND_URLS.desert_oak;
+          rgbWoodType = "desert-oak";
           break;
         case "Graphite Walnut":
           endpointUrl = BACKEND_URLS.graphite_walnut;
+          rgbWoodType = "graphite-walnut";
           break;
         default:
           throw new Error(`Unknown wood type: ${woodType}`);
       }
 
-      // Call the appropriate endpoint
-      const response = await axios.post(
+      // Call the original endpoint (for in-range/out-of-range determination)
+      const originalResponse = await axios.post(
         endpointUrl,
         { image: imageBase64, mimeType: "image/jpeg" },
         { headers: { "Content-Type": "application/json" } }
       );
 
-      // Process the response
-      const result = response.data?.result;
+      // Process the original response
+      const result = originalResponse.data?.result;
       const isInRange = result === true;
 
       // Set position score for visualization (optional)
-      if (response.data?.position_score !== undefined) {
-        setPositionScore(response.data.position_score);
-        setConfidence(response.data.confidence || 95); // Default to 95 if not provided
+      if (originalResponse.data?.position_score !== undefined) {
+        setPositionScore(originalResponse.data.position_score);
+        setConfidence(originalResponse.data.confidence || 95); // Default to 95 if not provided
       }
 
-      // Display the result
-      const resultText = `Wood Type: ${woodType}\nResult: ${
-        isInRange ? "In Range" : "Out of Range"
-      }`;
+      // Now call the new RGB classification endpoint
+      const rgbResponse = await axios.post(
+        BACKEND_URLS.classify_wood, // Add this URL to your BACKEND_URLS
+        {
+          image: imageBase64,
+          color: rgbWoodType,
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      // Extract RGB analysis results
+      const rgbResults = rgbResponse.data;
+      const predictedCategory = rgbResults.predicted_category;
+      const mainCategory = rgbResults.main_category;
+
+      // Combine the results
+      const resultText = `Wood Type: ${woodType}
+      Result: ${isInRange ? "In Range" : "Out of Range"}
+      RGB Analysis:
+      Category: ${predictedCategory}
+      Main Category: ${
+        mainCategory === "in-range" ? "In Range" : "Out of Range"
+      }
+      `;
+      /** 
+      RGB Analysis:
+      Category: ${predictedCategory}
+      Main Category: ${
+        mainCategory === "in-range" ? "In Range" : "Out of Range"
+      }*/
+
       setResponseText(resultText);
       Alert.alert("Analysis Result", resultText);
 
@@ -345,7 +371,6 @@ export default function ImagePickerScreen() {
     }
   };
 
-<<<<<<< HEAD
   const title = "Wood Report Details";
   const content = `This is a detailed report of your wood analysis. The results are based on the image you provided. The analysis includes the classification of the wood type, confidence levels, and any specialized tests that were performed. Please review the results carefully and let us know if you have any questions or need further assistance. Report Summary: - Wood Type: ${
     reportData?.wood_type?.classification ?? "Unknown"
@@ -357,8 +382,6 @@ export default function ImagePickerScreen() {
   const mail = `mailto:${""}?subject=${encodeURIComponent(
     subject
   )}&body=${encodeURIComponent(body)}`;
-=======
->>>>>>> origin/main
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
@@ -528,12 +551,9 @@ export default function ImagePickerScreen() {
             <Text style={styles.colorSpaceInfo}>
               Color space: {reportData.color_space_used || "rgb"}
             </Text>
-<<<<<<< HEAD
             <button onClick={() => (window.location.href = mailtoLink)}>
               Share via Email
             </button>
-=======
->>>>>>> origin/main
             <button onClick={saveReport}>Save Report</button>
           </View>
         )}

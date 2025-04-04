@@ -25,6 +25,7 @@ export const BACKEND_URLS = {
 
   rgbDifference: `${API_URL}/rgb-difference`, // rgb difference calculation given two images
 
+  classify_wood: `${API_URL}/api/classify-wood`, // rgb classifier
   baseUrl: API_URL, // Base URL for constructing other endpoints
 };
 
