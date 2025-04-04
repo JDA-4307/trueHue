@@ -824,7 +824,7 @@ def generate_full_report():
             logger.info("Running specialized tests for graphite walnut")
             
             # 2.1 Binary classification
-            binary_model_name = 'binary_model_graphite_walnut'
+            binary_model_name = 'validation_model_graphite_walnut'
             binary_interpreter = interpreters.get(binary_model_name)
             if binary_interpreter:
                 binary_result = predict_classification(
@@ -832,13 +832,36 @@ def generate_full_report():
                     preprocessed_image,
                     CLASS_NAMES[binary_model_name]
                 )
-                report["specialized_tests"]["binary"] = binary_result
+                report["specialized_tests"]["validation"] = binary_result
+            '''
+            # 2.2 Multiclass classification
+            multiclass_model_name = 'multiclass_model_graphite_walnut'
+            multiclass_interpreter = interpreters.get(multiclass_model_name)
+            if multiclass_interpreter:
+                multiclass_result = predict_classification(
+                    multiclass_interpreter,
+                    preprocessed_image,
+                    CLASS_NAMES[multiclass_model_name]
+                )
+                report["specialized_tests"]["multiclass"] = multiclass_result
+            
+            # 2.3 Regression model
+            regression_model_name = 'regression_model_graphite_walnut'
+            regression_interpreter = interpreters.get(regression_model_name)
+            if regression_interpreter:
+                regression_result = predict_regression(
+                    regression_interpreter,
+                    preprocessed_image
+                )
+                report["specialized_tests"]["regression"] = regression_result
+                '''
+
                 
         if wood_type == "medium_cherry":
             logger.info("Running specialized tests for medium cherry")
             
             # 2.1 Binary classification
-            binary_model_name = 'binary_model_medium_cherry'
+            binary_model_name = 'validation_model_medium_cherry'
             binary_interpreter = interpreters.get(binary_model_name)
             if binary_interpreter:
                 binary_result = predict_classification(
@@ -846,8 +869,44 @@ def generate_full_report():
                     preprocessed_image,
                     CLASS_NAMES[binary_model_name]
                 )
-                report["specialized_tests"]["binary"] = binary_result
 
+                report["specialized_tests"]["validation"] = binary_result
+
+        if wood_type == "desert_oak":
+            logger.info("Running specialized tests for desert oak")
+            
+            # 2.1 Binary classification
+            binary_model_name = 'validation_model_desert_oak'
+            binary_interpreter = interpreters.get(binary_model_name)
+            if binary_interpreter:
+                binary_result = predict_classification(
+                    binary_interpreter,
+                    preprocessed_image,
+                    CLASS_NAMES[binary_model_name]
+                )
+                report["specialized_tests"]["validation"] = binary_result
+            '''
+            # 2.2 Multiclass classification
+            multiclass_model_name = 'multiclass_model_graphite_walnut'
+            multiclass_interpreter = interpreters.get(multiclass_model_name)
+            if multiclass_interpreter:
+                multiclass_result = predict_classification(
+                    multiclass_interpreter,
+                    preprocessed_image,
+                    CLASS_NAMES[multiclass_model_name]
+                )
+                report["specialized_tests"]["multiclass"] = multiclass_result
+            
+            # 2.3 Regression model
+            regression_model_name = 'regression_model_graphite_walnut'
+            regression_interpreter = interpreters.get(regression_model_name)
+            if regression_interpreter:
+                regression_result = predict_regression(
+                    regression_interpreter,
+                    preprocessed_image
+                )
+                report["specialized_tests"]["regression"] = regression_result
+            '''
         return jsonify(report)
     
     except Exception as e:

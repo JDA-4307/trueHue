@@ -36,12 +36,15 @@ export default function ImagePickerScreen() {
   // New state to control showing wood type selection buttons
   const [showWoodTypeButtons, setShowWoodTypeButtons] =
     useState<boolean>(false);
-
+  const [showReport, setShowReport] = useState<boolean>(false);
   const subject = "Check this out!";
   const body = "Hey, I wanted to share this with you.\n\nBest regards!";
   const mailtoLink = `mailto:?subject=${encodeURIComponent(
     subject
   )}&body=${encodeURIComponent(body)}`;
+  // Now using BACKEND_URLS from config instead of hardcoded values
+
+
 
   useEffect(() => {
     (async () => {
@@ -128,6 +131,7 @@ export default function ImagePickerScreen() {
     setResponseText(null);
     setPositionScore(null);
     setConfidence(null);
+    setReportData(null);
   };
 
   // New function to handle wood type selection and call both endpoints
@@ -230,7 +234,9 @@ export default function ImagePickerScreen() {
       Alert.alert("No image selected", "Please select an image first.");
       return;
     }
-
+    setResponseText(null);
+    setPositionScore(null);
+    setConfidence(null);
     setIsGeneratingReport(true);
     try {
       // Call the full report endpoint
@@ -254,7 +260,7 @@ export default function ImagePickerScreen() {
         );
         return;
       }
-
+      console.log(response.data);
       // Store the full report data
       setReportData(response.data);
 
@@ -306,7 +312,7 @@ export default function ImagePickerScreen() {
 
     return (
       <View style={styles.specializedTestsContainer}>
-        <Text style={styles.sectionHeader}>Specialized Tests</Text>
+        <Text style={styles.sectionHeader}>Wood Validation</Text>
 
         {reportData.specialized_tests.binary && (
           <View style={styles.testSection}>
@@ -314,10 +320,7 @@ export default function ImagePickerScreen() {
             <Text>
               Result: {reportData.specialized_tests.binary.predicted_class}
             </Text>
-            <Text>
-              Confidence:{" "}
-              {reportData.specialized_tests.binary.confidence.toFixed(2)}%
-            </Text>
+            
           </View>
         )}
 
@@ -327,10 +330,7 @@ export default function ImagePickerScreen() {
             <Text>
               Result: {reportData.specialized_tests.multiclass.predicted_class}
             </Text>
-            <Text>
-              Confidence:{" "}
-              {reportData.specialized_tests.multiclass.confidence.toFixed(2)}%
-            </Text>
+            
           </View>
         )}
 
@@ -342,6 +342,15 @@ export default function ImagePickerScreen() {
               {reportData.specialized_tests.regression.predicted_value.toFixed(
                 4
               )}
+            </Text>
+          </View>
+        )}
+
+        {reportData.specialized_tests.validation && (
+          <View style={styles.testSection}>
+            <Text style={styles.testHeader}>Validation Classification</Text>
+            <Text>
+              Result: {reportData.specialized_tests.validation.predicted_class}
             </Text>
           </View>
         )}
@@ -371,17 +380,6 @@ export default function ImagePickerScreen() {
     }
   };
 
-  const title = "Wood Report Details";
-  const content = `This is a detailed report of your wood analysis. The results are based on the image you provided. The analysis includes the classification of the wood type, confidence levels, and any specialized tests that were performed. Please review the results carefully and let us know if you have any questions or need further assistance. Report Summary: - Wood Type: ${
-    reportData?.wood_type?.classification ?? "Unknown"
-  } - Accuracy: ${
-    reportData?.wood_type?.confidence ?? 0
-  }% - Date: ${new Date().toISOString()} - Specialized Tests: ${
-    reportData?.specialized_tests ? "Available" : "Not Available"
-  } - Color Space: ${reportData?.color_space_used ?? "Not Specified"}`;
-  const mail = `mailto:${""}?subject=${encodeURIComponent(
-    subject
-  )}&body=${encodeURIComponent(body)}`;
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
@@ -551,9 +549,6 @@ export default function ImagePickerScreen() {
             <Text style={styles.colorSpaceInfo}>
               Color space: {reportData.color_space_used || "rgb"}
             </Text>
-            <button onClick={() => (window.location.href = mailtoLink)}>
-              Share via Email
-            </button>
             <button onClick={saveReport}>Save Report</button>
           </View>
         )}
