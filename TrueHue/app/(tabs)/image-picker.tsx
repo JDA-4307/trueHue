@@ -33,7 +33,6 @@ export default function ImagePickerScreen() {
   const [hasCameraPermission, setHasCameraPermission] = useState<
     boolean | null
   >(null);
- 
   // New state to control showing wood type selection buttons
   const [showWoodTypeButtons, setShowWoodTypeButtons] =
     useState<boolean>(false);
@@ -43,10 +42,8 @@ export default function ImagePickerScreen() {
   const mailtoLink = `mailto:?subject=${encodeURIComponent(
     subject
   )}&body=${encodeURIComponent(body)}`;
-
-
-
   // Now using BACKEND_URLS from config instead of hardcoded values
+
 
 
   useEffect(() => {
@@ -137,48 +134,80 @@ export default function ImagePickerScreen() {
     setReportData(null);
   };
 
-  // New function to handle wood type selection and call respective endpoint
+  // New function to handle wood type selection and call both endpoints
   const analyzeByWoodType = async (woodType: string) => {
     setIsLoading(true);
     try {
       let endpointUrl: string;
+      let rgbWoodType: string; // For the RGB analysis endpoint
 
       // Determine which endpoint to call based on selected wood type
+      // and set the corresponding RGB wood type
       switch (woodType) {
         case "Medium Cherry":
           endpointUrl = BACKEND_URLS.medium_cherry;
+          rgbWoodType = "medium-cherry";
           break;
         case "Desert Oak":
           endpointUrl = BACKEND_URLS.desert_oak;
+          rgbWoodType = "desert-oak";
           break;
         case "Graphite Walnut":
           endpointUrl = BACKEND_URLS.graphite_walnut;
+          rgbWoodType = "graphite-walnut";
           break;
         default:
           throw new Error(`Unknown wood type: ${woodType}`);
       }
 
-      // Call the appropriate endpoint
-      const response = await axios.post(
+      // Call the original endpoint (for in-range/out-of-range determination)
+      const originalResponse = await axios.post(
         endpointUrl,
         { image: imageBase64, mimeType: "image/jpeg" },
         { headers: { "Content-Type": "application/json" } }
       );
 
-      // Process the response
-      const result = response.data?.result;
+      // Process the original response
+      const result = originalResponse.data?.result;
       const isInRange = result === true;
 
       // Set position score for visualization (optional)
-      if (response.data?.position_score !== undefined) {
-        setPositionScore(response.data.position_score);
-        setConfidence(response.data.confidence || 95); // Default to 95 if not provided
+      if (originalResponse.data?.position_score !== undefined) {
+        setPositionScore(originalResponse.data.position_score);
+        setConfidence(originalResponse.data.confidence || 95); // Default to 95 if not provided
       }
 
-      // Display the result
-      const resultText = `Wood Type: ${woodType}\nResult: ${
-        isInRange ? "In Range" : "Out of Range"
-      }`;
+      // Now call the new RGB classification endpoint
+      const rgbResponse = await axios.post(
+        BACKEND_URLS.classify_wood, // Add this URL to your BACKEND_URLS
+        {
+          image: imageBase64,
+          color: rgbWoodType,
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      // Extract RGB analysis results
+      const rgbResults = rgbResponse.data;
+      const predictedCategory = rgbResults.predicted_category;
+      const mainCategory = rgbResults.main_category;
+
+      // Combine the results
+      const resultText = `Wood Type: ${woodType}
+      Result: ${isInRange ? "In Range" : "Out of Range"}
+      RGB Analysis:
+      Category: ${predictedCategory}
+      Main Category: ${
+        mainCategory === "in-range" ? "In Range" : "Out of Range"
+      }
+      `;
+      /** 
+      RGB Analysis:
+      Category: ${predictedCategory}
+      Main Category: ${
+        mainCategory === "in-range" ? "In Range" : "Out of Range"
+      }*/
+
       setResponseText(resultText);
       Alert.alert("Analysis Result", resultText);
 
@@ -520,8 +549,6 @@ export default function ImagePickerScreen() {
             <Text style={styles.colorSpaceInfo}>
               Color space: {reportData.color_space_used || "rgb"}
             </Text>
-
-
             <button onClick={saveReport}>Save Report</button>
           </View>
         )}
