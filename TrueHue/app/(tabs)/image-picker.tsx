@@ -231,7 +231,7 @@ export default function ImagePickerScreen() {
         );
         return;
       }
-
+      console.log(response.data);
       // Store the full report data
       setReportData(response.data);
 
@@ -291,10 +291,7 @@ export default function ImagePickerScreen() {
             <Text>
               Result: {reportData.specialized_tests.binary.predicted_class}
             </Text>
-            <Text>
-              Confidence:{" "}
-              {reportData.specialized_tests.binary.confidence.toFixed(2)}%
-            </Text>
+            
           </View>
         )}
 
@@ -304,10 +301,7 @@ export default function ImagePickerScreen() {
             <Text>
               Result: {reportData.specialized_tests.multiclass.predicted_class}
             </Text>
-            <Text>
-              Confidence:{" "}
-              {reportData.specialized_tests.multiclass.confidence.toFixed(2)}%
-            </Text>
+            
           </View>
         )}
 
@@ -319,6 +313,15 @@ export default function ImagePickerScreen() {
               {reportData.specialized_tests.regression.predicted_value.toFixed(
                 4
               )}
+            </Text>
+          </View>
+        )}
+
+        {reportData.specialized_tests.validation && (
+          <View style={styles.testSection}>
+            <Text style={styles.testHeader}>Validation Classification</Text>
+            <Text>
+              Result: {reportData.specialized_tests.validation.predicted_class}
             </Text>
           </View>
         )}
