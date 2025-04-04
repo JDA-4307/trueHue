@@ -627,7 +627,7 @@ def generate_full_report():
                     preprocessed_image,
                     CLASS_NAMES[binary_model_name]
                 )
-                report["specialized_tests"]["binary"] = binary_result
+                report["specialized_tests"]["validation"] = binary_result
             '''
             # 2.2 Multiclass classification
             multiclass_model_name = 'multiclass_model_graphite_walnut'
@@ -664,7 +664,7 @@ def generate_full_report():
                     preprocessed_image,
                     CLASS_NAMES[binary_model_name]
                 )
-                report["specialized_tests"]["binary"] = binary_result
+                report["specialized_tests"]["validation"] = binary_result
 
         if wood_type == "desert_oak":
             logger.info("Running specialized tests for desert oak")
@@ -678,7 +678,7 @@ def generate_full_report():
                     preprocessed_image,
                     CLASS_NAMES[binary_model_name]
                 )
-                report["specialized_tests"]["binary"] = binary_result
+                report["specialized_tests"]["validation"] = binary_result
             '''
             # 2.2 Multiclass classification
             multiclass_model_name = 'multiclass_model_graphite_walnut'
