@@ -1,0 +1,9 @@
+name: apple_tensorflow
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.9
+  - tensorflow-deps
+  - ipykernel
+prefix: /Users/rishimanimaran/miniforge3/envs/apple_tensorflow
