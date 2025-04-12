@@ -1,9 +1,9 @@
-name: apple_tensorflow
+name: color_validator
 channels:
   - defaults
   - conda-forge
+  - apple
 dependencies:
   - python=3.9
   - tensorflow-deps
   - ipykernel
-prefix: /Users/rishimanimaran/miniforge3/envs/apple_tensorflow
