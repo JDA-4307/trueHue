@@ -4,6 +4,9 @@
 #docker run -p 3050:3050 backendprod:prod
 FROM condaforge/miniforge3:latest
 
+# Set non-interactive installation
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
 # Install system dependencies required for OpenCV
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
