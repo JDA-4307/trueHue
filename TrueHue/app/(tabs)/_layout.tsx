@@ -31,6 +31,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
+          headerShown: false, // This will hide the header bar
           tabBarIcon: ({ color, size }) => (
             <Image
               source={require("../../assets/images/home_icon.png")}
@@ -58,6 +59,7 @@ export default function TabLayout() {
         name="two"
         options={{
           title: "Reports",
+          headerShown: false, // This will hide the header bar
           tabBarIcon: ({ color, size }) => (
             <Image
               source={require("../../assets/images/report_icon.png")}
@@ -71,10 +73,11 @@ export default function TabLayout() {
         name="image-picker"
         options={{
           title: "Image Analyzer",
-          headerTitleAlign: "center",
-          headerStyle: {
-            alignItems: "center",
-          },
+          headerShown: false, // This will hide the header bar
+          //headerTitleAlign: "center",
+          //headerStyle: {
+          //  alignItems: "center",
+          //},
           tabBarIcon: ({ color, size }) => (
             <Image
               source={require("../../assets/images/photo_icon.png")}

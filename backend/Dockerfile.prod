@@ -1,25 +1,12 @@
-# Use Miniconda as base image
-#Commdands to run
-#docker build -t backend .
-#docker run -p 3050:3050 backend
-FROM continuumio/miniconda3:latest
+# Use Miniforge as base image
+#instructions on how to run
+#docker build -t backendprod:prod -f Dockerfile.prod .
+#docker run -p 3050:3050 backendprod:prod
+FROM condaforge/miniforge3:latest
 
-# Install system dependencies required for OpenCV
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-# Copy environment.yml and requirements.txt
-COPY environment.yml .
-# Use Miniconda as base image
-FROM continuumio/miniconda3:latest
-
+# Set non-interactive installation
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
 # Install system dependencies required for OpenCV
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
