@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Button,
   Image,
   StyleSheet,
   Alert,
@@ -10,41 +9,33 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  SafeAreaView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
-import { BACKEND_URLS } from "../../config"; // Import from config
+import { BACKEND_URLS } from "../../config";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 
 export default function ImagePickerScreen() {
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [responseText, setResponseText] = useState<string | null>(null);
-  const [positionScore, setPositionScore] = useState<number | null>(null);
-  const [confidence, setConfidence] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isGeneratingReport, setIsGeneratingReport] = useState<boolean>(false);
+  const [imageUri, setImageUri] = useState(null);
+  const [imageBase64, setImageBase64] = useState(null);
+  const [responseText, setResponseText] = useState(null);
+  const [positionScore, setPositionScore] = useState(null);
+  const [confidence, setConfidence] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reportData, setReportData] = useState(null);
+  const [hasGalleryPermission, setHasGalleryPermission] = useState(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState(null);
+  const [showWoodTypeButtons, setShowWoodTypeButtons] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
-  const [reportData, setReportData] = useState<any>(null);
-  const [hasGalleryPermission, setHasGalleryPermission] = useState<
-    boolean | null
-  >(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<
-    boolean | null
-  >(null);
-  // New state to control showing wood type selection buttons
-  const [showWoodTypeButtons, setShowWoodTypeButtons] =
-    useState<boolean>(false);
-  const [showReport, setShowReport] = useState<boolean>(false);
   const subject = "Check this out!";
   const body = "Hey, I wanted to share this with you.\n\nBest regards!";
   const mailtoLink = `mailto:?subject=${encodeURIComponent(
     subject
   )}&body=${encodeURIComponent(body)}`;
-  // Now using BACKEND_URLS from config instead of hardcoded values
-
-
 
   useEffect(() => {
     (async () => {
@@ -79,7 +70,7 @@ export default function ImagePickerScreen() {
       setResponseText(null);
       setPositionScore(null);
       setConfidence(null);
-      setShowWoodTypeButtons(false); // Hide wood type buttons when new image is selected
+      setShowWoodTypeButtons(false);
     }
   };
 
@@ -105,12 +96,12 @@ export default function ImagePickerScreen() {
       setResponseText(null);
       setPositionScore(null);
       setConfidence(null);
-      setShowWoodTypeButtons(false); // Hide wood type buttons when new image is selected
+      setShowWoodTypeButtons(false);
     }
   };
 
   // Helper: Get a label based on the regression score
-  const getPositionLabel = (score: number): string => {
+  const getPositionLabel = (score) => {
     if (score < -0.5) return "Very Dark";
     if (score < -0.1) return "Dark";
     if (score < 0.1) return "Well In Range";
@@ -118,16 +109,14 @@ export default function ImagePickerScreen() {
     return "Very Light";
   };
 
-  // Modified analyze function - now shows wood type buttons instead of directly calling endpoints
+  // Modified analyze function - now shows wood type buttons
   const analyzeImage = () => {
     if (!imageUri || !imageBase64) {
       Alert.alert("No image selected", "Please select an image first.");
       return;
     }
 
-    // Show the wood type selection buttons
     setShowWoodTypeButtons(true);
-    // Clear any previous results
     setResponseText(null);
     setPositionScore(null);
     setConfidence(null);
@@ -135,14 +124,12 @@ export default function ImagePickerScreen() {
   };
 
   // New function to handle wood type selection and call both endpoints
-  const analyzeByWoodType = async (woodType: string) => {
+  const analyzeByWoodType = async (woodType) => {
     setIsLoading(true);
     try {
-      let endpointUrl: string;
-      let rgbWoodType: string; // For the RGB analysis endpoint
+      let endpointUrl;
+      let rgbWoodType;
 
-      // Determine which endpoint to call based on selected wood type
-      // and set the corresponding RGB wood type
       switch (woodType) {
         case "Medium Cherry":
           endpointUrl = BACKEND_URLS.medium_cherry;
@@ -160,26 +147,24 @@ export default function ImagePickerScreen() {
           throw new Error(`Unknown wood type: ${woodType}`);
       }
 
-      // Call the original endpoint (for in-range/out-of-range determination)
+      // Call the original endpoint
       const originalResponse = await axios.post(
         endpointUrl,
         { image: imageBase64, mimeType: "image/jpeg" },
         { headers: { "Content-Type": "application/json" } }
       );
 
-      // Process the original response
       const result = originalResponse.data?.result;
       const isInRange = result === true;
 
-      // Set position score for visualization (optional)
       if (originalResponse.data?.position_score !== undefined) {
         setPositionScore(originalResponse.data.position_score);
-        setConfidence(originalResponse.data.confidence || 95); // Default to 95 if not provided
+        setConfidence(originalResponse.data.confidence || 95);
       }
 
-      // Now call the new RGB classification endpoint
+      // Call the RGB classification endpoint
       const rgbResponse = await axios.post(
-        BACKEND_URLS.classify_wood, // Add this URL to your BACKEND_URLS
+        BACKEND_URLS.classify_wood,
         {
           image: imageBase64,
           color: rgbWoodType,
@@ -187,30 +172,18 @@ export default function ImagePickerScreen() {
         { headers: { "Content-Type": "application/json" } }
       );
 
-      // Extract RGB analysis results
       const rgbResults = rgbResponse.data;
       const predictedCategory = rgbResults.predicted_category;
       const mainCategory = rgbResults.main_category;
 
-      // Combine the results
       const resultText = `Wood Type: ${woodType}
       RGB Analysis:
       Category: ${predictedCategory}
-      Result: ${
-        mainCategory === "in-range" ? "In Range" : "Out of Range"
-      }
+      Result: ${mainCategory === "in-range" ? "In Range" : "Out of Range"}
       `;
-      /** 
-      RGB Analysis:
-      Category: ${predictedCategory}
-      Main Category: ${
-        mainCategory === "in-range" ? "In Range" : "Out of Range"
-      }*/
 
       setResponseText(resultText);
       Alert.alert("Analysis Result", resultText);
-
-      // Hide the wood type buttons after analysis
       setShowWoodTypeButtons(false);
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -233,17 +206,16 @@ export default function ImagePickerScreen() {
       Alert.alert("No image selected", "Please select an image first.");
       return;
     }
-   
+
     setIsGeneratingReport(true);
     try {
-      // Call the full report endpoint
       const response = await axios.post(
         BACKEND_URLS.generateFullReport ||
           `${BACKEND_URLS.baseUrl}/generate-full-report`,
         {
           image: imageBase64,
           mimeType: "image/jpeg",
-          colorSpace: "lab", // Using LAB color space for better wood color detection
+          colorSpace: "lab",
         },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -257,17 +229,14 @@ export default function ImagePickerScreen() {
         );
         return;
       }
-      console.log(response.data);
-      // Store the full report data
+
       setReportData(response.data);
 
-      // Build a simple summary for the alert
       const woodType = response.data.wood_type?.classification || "Unknown";
       const summary = `Wood Type: ${woodType}\nConfidence: ${response.data.wood_type?.confidence.toFixed(
         2
       )}%`;
 
-      // Show a brief alert with the main finding
       Alert.alert(
         "Report Generated",
         summary + "\n\nSee below for full details"
@@ -295,10 +264,10 @@ export default function ImagePickerScreen() {
     setPositionScore(null);
     setConfidence(null);
     setReportData(null);
-    setShowWoodTypeButtons(false); // Hide wood type buttons
+    setShowWoodTypeButtons(false);
   };
 
-  // Format specialized test results for display
+  // Render specialized tests results for display
   const renderSpecializedTests = () => {
     if (
       !reportData?.specialized_tests ||
@@ -314,27 +283,25 @@ export default function ImagePickerScreen() {
         {reportData.specialized_tests.binary && (
           <View style={styles.testSection}>
             <Text style={styles.testHeader}>Binary Classification</Text>
-            <Text>
+            <Text style={styles.testResult}>
               Result: {reportData.specialized_tests.binary.predicted_class}
             </Text>
-            
           </View>
         )}
 
         {reportData.specialized_tests.multiclass && (
           <View style={styles.testSection}>
             <Text style={styles.testHeader}>Multiclass Classification</Text>
-            <Text>
+            <Text style={styles.testResult}>
               Result: {reportData.specialized_tests.multiclass.predicted_class}
             </Text>
-            
           </View>
         )}
 
         {reportData.specialized_tests.regression && (
           <View style={styles.testSection}>
             <Text style={styles.testHeader}>Regression Analysis</Text>
-            <Text>
+            <Text style={styles.testResult}>
               Value:{" "}
               {reportData.specialized_tests.regression.predicted_value.toFixed(
                 4
@@ -346,7 +313,7 @@ export default function ImagePickerScreen() {
         {reportData.specialized_tests.validation && (
           <View style={styles.testSection}>
             <Text style={styles.testHeader}>Validation Classification</Text>
-            <Text>
+            <Text style={styles.testResult}>
               Result: {reportData.specialized_tests.validation.predicted_class}
             </Text>
           </View>
@@ -361,394 +328,617 @@ export default function ImagePickerScreen() {
       return;
     }
 
-    // Store the report in your preferred storage (e.g., Firebase, local storage)
     try {
-      // Save the report to Firebase Firestore
       const docRef = await addDoc(collection(db, "Reports"), {
         Accuracy: reportData.wood_type?.confidence,
         Date: new Date().toISOString(),
         Wood: reportData.wood_type?.classification || "Unknown",
       });
       console.log("Document written with ID: ", docRef.id);
-      alert("Report saved successfully!");
+      Alert.alert("Success", "Report saved successfully!");
     } catch (e) {
       console.error("Error adding document: ", e);
-      alert("Error saving report.");
+      Alert.alert("Error", "Failed to save report.");
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        {/* Show image selection buttons only if no image has been picked */}
-        {!imageUri && (
-          <>
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.button} onPress={pickImage}>
-                <Text style={styles.buttonText}>Select Image</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.button} onPress={takePicture}>
-                <Text style={styles.buttonText}>Take Picture</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.container}>
+          <Text style={styles.appTitle}>Wood Analysis Assistant</Text>
 
-        {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
+          {!imageUri ? (
+            <View style={styles.startContainer}>
+              <Text style={styles.instructionText}>
+                Upload or take a photo of wood to analyze its type and
+                properties
+              </Text>
 
-        {imageUri && (
-          <>
-            {/* Loading indicators */}
-            {isLoading && (
-              <ActivityIndicator
-                size="large"
-                color="#0000ff"
-                style={styles.loader}
-              />
-            )}
-
-            {isGeneratingReport && (
-              <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#ff9800" />
-                <Text style={styles.loaderText}>Generating full report...</Text>
-              </View>
-            )}
-
-            {/* Wood Type Selection Buttons - Only show after Analyze is clicked */}
-            {showWoodTypeButtons && !isLoading && (
-              <View style={styles.woodTypeButtonsContainer}>
-                <Text style={styles.woodTypePrompt}>Select wood type:</Text>
+              <View style={styles.initialButtonsContainer}>
                 <TouchableOpacity
-                  style={[styles.button, styles.woodTypeButton]}
-                  onPress={() => analyzeByWoodType("Medium Cherry")}
+                  style={styles.primaryButton}
+                  onPress={pickImage}
                 >
-                  <Text style={styles.buttonText}>Medium Cherry</Text>
+                  <Text style={styles.buttonText}>Choose from Gallery</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
-                  style={[styles.button, styles.woodTypeButton]}
-                  onPress={() => analyzeByWoodType("Desert Oak")}
+                  style={styles.secondaryButton}
+                  onPress={takePicture}
                 >
-                  <Text style={styles.buttonText}>Desert Oak</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, styles.woodTypeButton]}
-                  onPress={() => analyzeByWoodType("Graphite Walnut")}
-                >
-                  <Text style={styles.buttonText}>Graphite Walnut</Text>
+                  <Text style={styles.secondaryButtonText}>Take a Photo</Text>
                 </TouchableOpacity>
               </View>
-            )}
+            </View>
+          ) : (
+            <View style={styles.analysisContainer}>
+              <View style={styles.imageFrame}>
+                <Image source={{ uri: imageUri }} style={styles.image} />
+              </View>
 
-            {/* Action Buttons */}
-            {!isLoading && !isGeneratingReport && !showWoodTypeButtons && (
-              <View style={styles.buttonRow}>
-                <View style={styles.flexButton}>
+              {/* Loading indicators */}
+              {isLoading && (
+                <View style={styles.loaderContainer}>
+                  <ActivityIndicator size="large" color="#8A3FFC" />
+                  <Text style={styles.loaderText}>Analyzing wood type...</Text>
+                </View>
+              )}
+
+              {isGeneratingReport && (
+                <View style={styles.loaderContainer}>
+                  <ActivityIndicator size="large" color="#8A3FFC" />
+                  <Text style={styles.loaderText}>
+                    Generating comprehensive report...
+                  </Text>
+                </View>
+              )}
+
+              {/* Wood Type Selection Buttons */}
+              {showWoodTypeButtons && !isLoading && (
+                <View style={styles.woodTypeButtonsContainer}>
+                  <Text style={styles.woodTypePrompt}>
+                    Select wood type for analysis:
+                  </Text>
+
                   <TouchableOpacity
-                    style={[styles.button, styles.analyzeButton]}
+                    style={styles.woodTypeButton}
+                    onPress={() => analyzeByWoodType("Medium Cherry")}
+                  >
+                    <Text style={styles.buttonText}>Medium Cherry</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.woodTypeButton}
+                    onPress={() => analyzeByWoodType("Desert Oak")}
+                  >
+                    <Text style={styles.buttonText}>Desert Oak</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.woodTypeButton}
+                    onPress={() => analyzeByWoodType("Graphite Walnut")}
+                  >
+                    <Text style={styles.buttonText}>Graphite Walnut</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => setShowWoodTypeButtons(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Action Buttons */}
+              {!isLoading && !isGeneratingReport && !showWoodTypeButtons && (
+                <View style={styles.actionButtonsContainer}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
                     onPress={analyzeImage}
                   >
                     <Text style={styles.buttonText}>Analyze</Text>
                   </TouchableOpacity>
-                </View>
-                <View style={styles.flexButton}>
+
                   <TouchableOpacity
-                    style={[styles.button, styles.fullReportButton]}
+                    style={styles.actionButton}
                     onPress={generateFullReport}
                   >
-                    <Text style={styles.buttonText}>Full Report</Text>
+                    <Text style={styles.buttonText}>Generate Report</Text>
                   </TouchableOpacity>
-                </View>
-                <View style={styles.flexButton}>
+
                   <TouchableOpacity
-                    style={[styles.button, styles.reuploadButton]}
+                    style={styles.resetButton}
                     onPress={reuploadImage}
                   >
-                    <Text style={styles.buttonText}>Reupload</Text>
+                    <Text style={styles.resetButtonText}>New Image</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
-            )}
+              )}
 
-            {/* Spectrum Bar: shows position and confidence if regression was run */}
-            {positionScore !== null && (
-              <View style={styles.spectrumContainer}>
-                <View
-                  style={[
-                    styles.spectrumFill,
-                    { width: `${((positionScore + 1) / 2) * 100}%` },
-                  ]}
-                />
-                <Text style={styles.positionLabel}>
-                  Position: {getPositionLabel(positionScore)} (
-                  {positionScore.toFixed(2)})
-                </Text>
-                <Text>Confidence: {confidence?.toFixed(2)}%</Text>
-              </View>
-            )}
-          </>
-        )}
+              {/* Spectrum Bar */}
+              {positionScore !== null && (
+                <View style={styles.spectrumCard}>
+                  <Text style={styles.spectrumTitle}>Color Analysis</Text>
 
-        {/* Response Text from original analysis */}
-        {responseText && (
-          <View style={styles.responseContainer}>
-            <Text style={styles.responseText}>{responseText}</Text>
-          </View>
-        )}
+                  <View style={styles.spectrumContainer}>
+                    <View style={styles.spectrumLabels}>
+                      <Text style={styles.spectrumLabel}>Dark</Text>
+                      <Text style={styles.spectrumLabel}>Light</Text>
+                    </View>
 
-        {/* Full Report Results */}
-        {reportData && (
-          <View style={styles.reportContainer}>
-            <Text style={styles.reportTitle}>Full Analysis Report</Text>
+                    <View style={styles.spectrumBar}>
+                      <View
+                        style={[
+                          styles.spectrumFill,
+                          { width: `${((positionScore + 1) / 2) * 100}%` },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.spectrumMarker,
+                          { left: `${((positionScore + 1) / 2) * 100}%` },
+                        ]}
+                      />
+                    </View>
 
-            <View style={styles.woodTypeContainer}>
-              <Text style={styles.sectionHeader}>Wood Classification</Text>
-              <Text style={styles.woodType}>
-                {reportData.wood_type?.classification || "Unknown"}
-              </Text>
-              <Text style={styles.confidence}>
-                Confidence: {reportData.wood_type?.confidence.toFixed(2)}%
-              </Text>
+                    <Text style={styles.positionLabel}>
+                      Analysis: {getPositionLabel(positionScore)} (
+                      {positionScore.toFixed(2)})
+                    </Text>
+                    <Text style={styles.confidenceLabel}>
+                      Confidence: {confidence?.toFixed(2)}%
+                    </Text>
+                  </View>
+                </View>
+              )}
 
-              {/* Probability distribution */}
-              {reportData.wood_type?.all_probabilities && (
-                <View style={styles.probabilitiesContainer}>
-                  <Text style={styles.probabilitiesHeader}>
-                    All Probabilities:
-                  </Text>
-                  {Object.entries(reportData.wood_type.all_probabilities).map(
-                    ([key, value]) => (
-                      <View key={key} style={styles.probabilityRow}>
-                        <Text style={styles.probabilityName}>{key}:</Text>
-                        <Text style={styles.probabilityValue}>
-                          {(value as number).toFixed(2)}%
+              {/* Response Text */}
+              {responseText && (
+                <View style={styles.responseCard}>
+                  <Text style={styles.responseTitle}>Analysis Results</Text>
+                  <Text style={styles.responseText}>{responseText}</Text>
+                </View>
+              )}
+
+              {/* Full Report Results */}
+              {reportData && (
+                <View style={styles.reportContainer}>
+                  <Text style={styles.reportTitle}>Comprehensive Analysis</Text>
+
+                  <View style={styles.reportSection}>
+                    <Text style={styles.sectionHeader}>
+                      Wood Classification
+                    </Text>
+                    <Text style={styles.woodType}>
+                      {reportData.wood_type?.classification || "Unknown"}
+                    </Text>
+                    <Text style={styles.confidence}>
+                      Confidence: {reportData.wood_type?.confidence.toFixed(2)}%
+                    </Text>
+
+                    {/* Probability distribution */}
+                    {reportData.wood_type?.all_probabilities && (
+                      <View style={styles.probabilitiesContainer}>
+                        <Text style={styles.probabilitiesHeader}>
+                          All Probabilities:
                         </Text>
-                        <View style={styles.probabilityBar}>
-                          <View
-                            style={[
-                              styles.probabilityFill,
-                              { width: `${value as number}%` },
-                            ]}
-                          />
-                        </View>
+                        {Object.entries(
+                          reportData.wood_type.all_probabilities
+                        ).map(([key, value]) => (
+                          <View key={key} style={styles.probabilityRow}>
+                            <Text style={styles.probabilityName}>{key}</Text>
+                            <Text style={styles.probabilityValue}>
+                              {value.toFixed(2)}%
+                            </Text>
+                            <View style={styles.probabilityBar}>
+                              <View
+                                style={[
+                                  styles.probabilityFill,
+                                  { width: `${value}%` },
+                                ]}
+                              />
+                            </View>
+                          </View>
+                        ))}
                       </View>
-                    )
-                  )}
+                    )}
+                  </View>
+
+                  {renderSpecializedTests()}
+
+                  <View style={styles.reportActions}>
+                    <TouchableOpacity
+                      style={styles.saveButton}
+                      onPress={saveReport}
+                    >
+                      <Text style={styles.buttonText}>Save Report</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.shareButton}
+                      onPress={() => Linking.openURL(mailtoLink)}
+                    >
+                      <Text style={styles.buttonText}>Share Results</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
-
-            {/* Specialized Tests */}
-            {/* {renderSpecializedTests()} */}
-
-            {/* Color Space Info */}
-            <Text style={styles.colorSpaceInfo}>
-              Color space: {reportData.color_space_used || "rgb"}
-            </Text>
-            <button onClick={saveReport}>Save Report</button>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F9F9FC",
+  },
   scrollContainer: {
     flexGrow: 1,
   },
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    padding: 24,
+    backgroundColor: "#F9F9FC",
   },
-  image: {
-    width: 300,
-    height: 300,
-    marginVertical: 10,
+  appTitle: {
+    fontSize: 28,
+    fontWeight: "600",
+    color: "#35343D",
+    textAlign: "center",
+    marginBottom: 16,
+    marginTop: 8,
   },
-  buttonContainer: {
-    marginVertical: 10,
-  },
-  button: {
-    backgroundColor: "#2196F3", // Your exact blue color
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+  startContainer: {
     alignItems: "center",
     justifyContent: "center",
+    padding: 24,
+    marginTop: 40,
+  },
+  instructionText: {
+    fontSize: 17,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 32,
+    lineHeight: 24,
+  },
+  initialButtonsContainer: {
+    width: "100%",
+    alignItems: "center",
+    gap: 16,
+  },
+  primaryButton: {
+    backgroundColor: "#8A3FFC", // Claude's purple
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#8A3FFC",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  secondaryButton: {
+    backgroundColor: "transparent",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#8A3FFC",
   },
   buttonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 20,
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  flexButton: {
-    marginHorizontal: 5,
-    minWidth: 110,
-    marginBottom: 10,
-  },
-  responseContainer: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  responseText: {
+  secondaryButtonText: {
+    color: "#8A3FFC",
     fontSize: 16,
-    textAlign: "center",
+    fontWeight: "600",
   },
-  loader: {
-    marginTop: 20,
+  analysisContainer: {
+    alignItems: "center",
+    width: "100%",
+  },
+  imageFrame: {
+    marginVertical: 20,
+    borderRadius: 16,
+    padding: 4,
+    backgroundColor: "white",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  image: {
+    width: 300,
+    height: 300,
+    borderRadius: 12,
   },
   loaderContainer: {
-    marginTop: 20,
     alignItems: "center",
+    marginVertical: 24,
   },
   loaderText: {
-    marginTop: 10,
+    marginTop: 12,
     fontSize: 16,
-    color: "#ff9800",
+    color: "#8A3FFC",
+  },
+  woodTypeButtonsContainer: {
+    width: "100%",
+    marginVertical: 16,
+    alignItems: "center",
+    gap: 12,
+  },
+  woodTypePrompt: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#35343D",
+    marginBottom: 8,
+  },
+  woodTypeButton: {
+    backgroundColor: "#8A3FFC",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    width: "100%",
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: "transparent",
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  cancelButtonText: {
+    color: "#666",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  actionButtonsContainer: {
+    flexDirection: "column",
+    width: "100%",
+    marginVertical: 16,
+    gap: 12,
+  },
+  actionButton: {
+    backgroundColor: "#8A3FFC",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  resetButton: {
+    backgroundColor: "transparent",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#D9D9E3",
+    marginTop: 4,
+  },
+  resetButtonText: {
+    color: "#666",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  spectrumCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 20,
+    width: "100%",
+    marginVertical: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  spectrumTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#35343D",
+    marginBottom: 16,
   },
   spectrumContainer: {
-    width: "80%",
-    height: 20,
-    backgroundColor: "#ddd",
-    borderRadius: 10,
+    width: "100%",
+  },
+  spectrumLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  spectrumLabel: {
+    fontSize: 14,
+    color: "#666",
+  },
+  spectrumBar: {
+    height: 12,
+    backgroundColor: "#EFEFEF",
+    borderRadius: 6,
     overflow: "hidden",
-    marginTop: 10,
+    position: "relative",
   },
   spectrumFill: {
     height: "100%",
-    backgroundColor: "orange",
+    backgroundColor: "#8A3FFC",
+    borderRadius: 6,
+  },
+  spectrumMarker: {
+    position: "absolute",
+    top: -4,
+    marginLeft: -6,
+    width: 12,
+    height: 20,
+    backgroundColor: "#5E35B1",
+    borderRadius: 6,
   },
   positionLabel: {
-    textAlign: "center",
-    marginTop: 5,
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "500",
+    color: "#35343D",
+    marginTop: 16,
+    textAlign: "center",
   },
-  // Report styles
-  reportContainer: {
-    marginTop: 25,
+  confidenceLabel: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  responseCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 20,
     width: "100%",
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    padding: 15,
+    marginVertical: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  responseTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#35343D",
+    marginBottom: 12,
+  },
+  responseText: {
+    fontSize: 16,
+    color: "#35343D",
+    lineHeight: 24,
+  },
+  reportContainer: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    marginVertical: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   reportTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 15,
-    color: "#333",
-  },
-  woodTypeContainer: {
+    fontSize: 22,
+    fontWeight: "600",
+    color: "#35343D",
     marginBottom: 20,
+    textAlign: "center",
+  },
+  reportSection: {
+    marginBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EFEFEF",
+    paddingBottom: 20,
   },
   sectionHeader: {
     fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#333",
+    fontWeight: "600",
+    color: "#35343D",
+    marginBottom: 12,
   },
   woodType: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#4a90e2",
-    marginBottom: 5,
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#8A3FFC",
+    marginBottom: 8,
   },
   confidence: {
     fontSize: 16,
-    marginBottom: 10,
+    color: "#666",
+    marginBottom: 16,
   },
   probabilitiesContainer: {
-    marginTop: 10,
+    marginTop: 16,
   },
   probabilitiesHeader: {
     fontSize: 16,
-    marginBottom: 8,
     fontWeight: "500",
+    color: "#35343D",
+    marginBottom: 12,
   },
   probabilityRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 5,
+    marginBottom: 8,
   },
   probabilityName: {
     width: 120,
     fontSize: 14,
+    color: "#666",
   },
   probabilityValue: {
     width: 60,
     fontSize: 14,
     textAlign: "right",
+    color: "#35343D",
   },
   probabilityBar: {
     flex: 1,
-    height: 10,
-    backgroundColor: "#ddd",
-    borderRadius: 5,
-    marginLeft: 10,
+    height: 8,
+    backgroundColor: "#EFEFEF",
+    borderRadius: 4,
+    marginLeft: 12,
     overflow: "hidden",
   },
   probabilityFill: {
     height: "100%",
-    backgroundColor: "#4a90e2",
+    backgroundColor: "#8A3FFC",
   },
   specializedTestsContainer: {
-    marginBottom: 15,
+    marginBottom: 24,
   },
   testSection: {
-    backgroundColor: "#e8eaf6",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
+    backgroundColor: "#F9F9FC",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
   },
   testHeader: {
     fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
-    color: "#3f51b5",
+    fontWeight: "600",
+    color: "#35343D",
+    marginBottom: 8,
   },
-  colorSpaceInfo: {
-    marginTop: 10,
-    fontSize: 14,
-    fontStyle: "italic",
-    color: "#757575",
-    textAlign: "right",
+  testResult: {
+    fontSize: 15,
+    color: "#666",
   },
-  analyzeButton: {
-    backgroundColor: "#2196F3",
+  reportActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 12,
+    gap: 16,
   },
-  fullReportButton: {
-    backgroundColor: "#ff9800",
-  },
-  reuploadButton: {
-    backgroundColor: "#f44336",
-  },
-  // New styles for wood type buttons
-  woodTypeButtonsContainer: {
-    marginTop: 15,
+  saveButton: {
+    flex: 1,
+    backgroundColor: "#8A3FFC",
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: "center",
-    width: "100%",
   },
-  woodTypePrompt: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  woodTypeButton: {
-    marginVertical: 8,
-    width: "80%",
-    backgroundColor: "#4CAF50", // Green color for wood type buttons
+  shareButton: {
+    flex: 1,
+    backgroundColor: "#5E35B1",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
   },
 });
