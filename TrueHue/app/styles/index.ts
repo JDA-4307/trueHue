@@ -1,7 +1,8 @@
+// index.ts
 export * from "./colors";
 export * from "./typography";
 export * from "./spacing";
+export * from "./layouts";
 export * from "./buttons";
 export * from "./cards";
-export * from "./layouts";
-export { theme } from "./theme";
+export * from "./theme";

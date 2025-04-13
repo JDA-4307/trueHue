@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
+  SafeAreaView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
@@ -16,13 +17,6 @@ import { BACKEND_URLS } from "../../config"; // Import from config
 // Define just the range thresholds as global variables
 let VERY_SIMILAR_THRESHOLD = 10;
 let MODERATE_THRESHOLD = 50;
-
-// Add these constants at the top of your file, before your component
-const COLOR_PALETTE = {
-  GREEN: "#4CAF50",
-  YELLOW: "#FFC107",
-  RED: "#F44336",
-} as const;
 
 export default function VeneerComparisonScreen() {
   // State for first image
@@ -41,12 +35,10 @@ export default function VeneerComparisonScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Permission states
-  const [hasGalleryPermission, setHasGalleryPermission] = useState<
-    boolean | null
-  >(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<
-    boolean | null
-  >(null);
+  const [hasGalleryPermission, setHasGalleryPermission] =
+    useState<boolean>(false);
+  const [hasCameraPermission, setHasCameraPermission] =
+    useState<boolean>(false);
 
   // Request permissions on component mount
   useEffect(() => {
@@ -213,10 +205,9 @@ export default function VeneerComparisonScreen() {
 
   // Get color based on difference value for visualization
   const getDifferenceColor = (value: number): string => {
-    console.log(`diff value: ${value}`);
-    if (value < VERY_SIMILAR_THRESHOLD) return COLOR_PALETTE.GREEN;
-    if (value < MODERATE_THRESHOLD) return COLOR_PALETTE.YELLOW;
-    return COLOR_PALETTE.RED;
+    if (value < VERY_SIMILAR_THRESHOLD) return "#4CAF50"; // Green
+    if (value < MODERATE_THRESHOLD) return "#FFC107"; // Yellow
+    return "#F44336"; // Red
   };
 
   // Get interpretation text based on difference value
@@ -231,266 +222,343 @@ export default function VeneerComparisonScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Wood Veneer Comparison</Text>
-        <Text style={styles.subtitle}>
-          Compare two veneer samples to see how similar they are
-        </Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.container}>
+          <Text style={styles.appTitle}>Wood Veneer Comparison</Text>
+          <Text style={styles.instructionText}>
+            Compare two veneer samples to see how similar they are
+          </Text>
 
-        {/* Image 1 Section */}
-        <View style={styles.imageSection}>
-          <Text style={styles.sectionHeader}>Veneer Sample 1</Text>
+          {/* Image 1 Section */}
+          <View style={styles.imageSection}>
+            <Text style={styles.sectionHeader}>Veneer Sample 1</Text>
 
-          {!image1Uri ? (
-            <View style={styles.imagePlaceholder}>
-              <TouchableOpacity style={styles.button} onPress={pickImage1}>
-                <Text style={styles.buttonText}>Select Image</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.button} onPress={takePicture1}>
-                <Text style={styles.buttonText}>Take Picture</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View>
-              <Image source={{ uri: image1Uri }} style={styles.image} />
-              <TouchableOpacity
-                style={[styles.button, styles.smallButton]}
-                onPress={pickImage1}
-              >
-                <Text style={styles.buttonText}>Change Image</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+            {!image1Uri ? (
+              <View style={styles.startContainer}>
+                <TouchableOpacity
+                  style={styles.primaryButton}
+                  onPress={pickImage1}
+                >
+                  <Text style={styles.buttonText}>Choose from Gallery</Text>
+                </TouchableOpacity>
 
-        {/* Image 2 Section */}
-        <View style={styles.imageSection}>
-          <Text style={styles.sectionHeader}>Veneer Sample 2</Text>
-
-          {!image2Uri ? (
-            <View style={styles.imagePlaceholder}>
-              <TouchableOpacity style={styles.button} onPress={pickImage2}>
-                <Text style={styles.buttonText}>Select Image</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.button} onPress={takePicture2}>
-                <Text style={styles.buttonText}>Take Picture</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View>
-              <Image source={{ uri: image2Uri }} style={styles.image} />
-              <TouchableOpacity
-                style={[styles.button, styles.smallButton]}
-                onPress={pickImage2}
-              >
-                <Text style={styles.buttonText}>Change Image</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        {/* Action Buttons */}
-        {(image1Uri || image2Uri) && (
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.compareButton,
-                (!image1Uri || !image2Uri) && styles.disabledButton,
-              ]}
-              onPress={calculateDifference}
-              disabled={!image1Uri || !image2Uri || isLoading}
-            >
-              <Text style={styles.buttonText}>
-                {isLoading ? "Calculating..." : "Calculate Difference"}
-              </Text>
-              {isLoading && (
-                <ActivityIndicator color="#fff" style={styles.buttonLoader} />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.button, styles.resetButton]}
-              onPress={resetImages}
-            >
-              <Text style={styles.buttonText}>Reset</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Results Section */}
-        {difference !== null && normalizedDifference !== null && (
-          <View style={styles.resultsContainer}>
-            <Text style={styles.resultsTitle}>Comparison Results</Text>
-
-            <View style={styles.resultValueContainer}>
-              <View
-                style={[
-                  styles.resultBadge,
-                  { backgroundColor: getDifferenceColor(normalizedDifference) },
-                ]}
-              >
-                <Text style={styles.resultValue}>
-                  {normalizedDifference.toFixed(2)}
-                </Text>
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={takePicture1}
+                >
+                  <Text style={styles.secondaryButtonText}>Take a Photo</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.resultLabel}>RGB Euclidean Difference</Text>
-            </View>
+            ) : (
+              <View style={styles.analysisContainer}>
+                <View style={styles.imageFrame}>
+                  <Image source={{ uri: image1Uri }} style={styles.image} />
+                </View>
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={pickImage1}
+                >
+                  <Text style={styles.secondaryButtonText}>Change Image</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
 
-            <View style={styles.differenceBarContainer}>
-              <View style={styles.differenceBar}>
+          {/* Image 2 Section */}
+          <View style={styles.imageSection}>
+            <Text style={styles.sectionHeader}>Veneer Sample 2</Text>
+
+            {!image2Uri ? (
+              <View style={styles.startContainer}>
+                <TouchableOpacity
+                  style={styles.primaryButton}
+                  onPress={pickImage2}
+                >
+                  <Text style={styles.buttonText}>Choose from Gallery</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={takePicture2}
+                >
+                  <Text style={styles.secondaryButtonText}>Take a Photo</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.analysisContainer}>
+                <View style={styles.imageFrame}>
+                  <Image source={{ uri: image2Uri }} style={styles.image} />
+                </View>
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={pickImage2}
+                >
+                  <Text style={styles.secondaryButtonText}>Change Image</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {/* Action Buttons */}
+          {(image1Uri || image2Uri) && (
+            <View style={styles.actionButtonsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  (!image1Uri || !image2Uri || isLoading) &&
+                    styles.disabledButton,
+                ]}
+                onPress={calculateDifference}
+                disabled={!image1Uri || !image2Uri || isLoading}
+              >
+                <Text style={styles.buttonText}>
+                  {isLoading ? "Calculating..." : "Calculate Difference"}
+                </Text>
+                {isLoading && (
+                  <ActivityIndicator
+                    color="white"
+                    style={styles.buttonLoader}
+                  />
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={resetImages}
+              >
+                <Text style={styles.resetButtonText}>Reset</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Results Section */}
+          {difference !== null && normalizedDifference !== null && (
+            <View style={styles.responseCard}>
+              <Text style={styles.responseTitle}>Comparison Results</Text>
+
+              <View style={styles.resultValueContainer}>
                 <View
                   style={[
-                    styles.differenceBarFill,
+                    styles.resultBadge,
                     {
-                      width: `${Math.min(100, normalizedDifference)}%`,
                       backgroundColor: getDifferenceColor(normalizedDifference),
                     },
                   ]}
-                />
+                >
+                  <Text style={styles.resultValue}>
+                    {normalizedDifference.toFixed(2)}
+                  </Text>
+                </View>
+                <Text style={styles.resultLabel}>RGB Euclidean Difference</Text>
               </View>
-              <View style={styles.barLabels}>
-                <Text style={styles.barLabelLeft}>Similar</Text>
-                <Text style={styles.barLabelRight}>Different</Text>
+
+              <View style={styles.differenceBarContainer}>
+                <View style={styles.differenceBar}>
+                  <View
+                    style={[
+                      styles.differenceBarFill,
+                      {
+                        width: `${Math.min(100, normalizedDifference)}%`,
+                        backgroundColor:
+                          getDifferenceColor(normalizedDifference),
+                      },
+                    ]}
+                  />
+                </View>
+                <View style={styles.barLabels}>
+                  <Text style={styles.barLabelLeft}>Similar</Text>
+                  <Text style={styles.barLabelRight}>Different</Text>
+                </View>
               </View>
-            </View>
 
-            <Text style={styles.interpretationText}>
-              {getDifferenceInterpretation(normalizedDifference)}
-            </Text>
-
-            <View style={styles.infoBox}>
-              <Text style={styles.infoTitle}>What does this mean?</Text>
-              <Text style={styles.infoText}>
-                The RGB Euclidean difference measures the distance between
-                colors in RGB space. A lower value indicates more similar colors
-                between the veneer samples. This can help determine if two wood
-                samples will match visually when placed together.
+              <Text style={styles.interpretationText}>
+                {getDifferenceInterpretation(normalizedDifference)}
               </Text>
+
+              <View style={styles.infoBox}>
+                <Text style={styles.infoTitle}>What does this mean?</Text>
+                <Text style={styles.responseText}>
+                  The RGB Euclidean difference measures the distance between
+                  colors in RGB space. A lower value indicates more similar
+                  colors between the veneer samples. This can help determine if
+                  two wood samples will match visually when placed together.
+                </Text>
+              </View>
             </View>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F9F9FC",
+  },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: "#f5f5f5",
   },
   container: {
     flex: 1,
-    padding: 20,
-    alignItems: "center",
+    padding: 24,
+    backgroundColor: "#F9F9FC",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
-    color: "#333",
+  appTitle: {
+    fontSize: 28,
+    fontWeight: "600",
+    color: "#35343D",
     textAlign: "center",
+    marginBottom: 16,
+    marginTop: 8,
   },
-  subtitle: {
-    fontSize: 16,
+  instructionText: {
+    fontSize: 17,
     color: "#666",
-    marginBottom: 24,
     textAlign: "center",
+    marginBottom: 32,
+    lineHeight: 24,
   },
   imageSection: {
     width: "100%",
     marginBottom: 20,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 2,
   },
   sectionHeader: {
     fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
-    color: "#333",
-    textAlign: "center",
+    fontWeight: "600",
+    color: "#35343D",
+    marginBottom: 16,
   },
-  imagePlaceholder: {
+  startContainer: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#eee",
-    height: 200,
-    borderRadius: 5,
-    padding: 20,
+    width: "100%",
+    gap: 16,
+  },
+  analysisContainer: {
+    alignItems: "center",
+    width: "100%",
+  },
+  imageFrame: {
+    marginVertical: 20,
+    borderRadius: 16,
+    padding: 4,
+    backgroundColor: "white",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   image: {
-    width: "100%",
-    height: 200,
-    borderRadius: 5,
-    marginBottom: 10,
+    width: 300,
+    height: 300,
+    borderRadius: 12,
   },
-  button: {
-    backgroundColor: "#2196F3",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+  primaryButton: {
+    backgroundColor: "#8A3FFC",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 8,
+    shadowColor: "#8A3FFC",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  secondaryButton: {
+    backgroundColor: "transparent",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#8A3FFC",
+  },
+  actionButtonsContainer: {
+    flexDirection: "column",
+    width: "100%",
+    marginVertical: 16,
+    gap: 12,
+  },
+  actionButton: {
+    backgroundColor: "#8A3FFC",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
     flexDirection: "row",
+  },
+  resetButton: {
+    backgroundColor: "transparent",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#D9D9E3",
+    marginTop: 4,
+  },
+  disabledButton: {
+    backgroundColor: "#D9D9E3",
   },
   buttonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
-  smallButton: {
-    alignSelf: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 15,
+  secondaryButtonText: {
+    color: "#8A3FFC",
+    fontSize: 16,
+    fontWeight: "600",
   },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-    marginVertical: 10,
-  },
-  compareButton: {
-    flex: 0.7,
-    backgroundColor: "#4CAF50",
-    marginRight: 10,
-  },
-  resetButton: {
-    flex: 0.3,
-    backgroundColor: "#f44336",
-  },
-  disabledButton: {
-    backgroundColor: "#ccc",
+  resetButtonText: {
+    color: "#666",
+    fontSize: 16,
+    fontWeight: "500",
   },
   buttonLoader: {
     marginLeft: 10,
   },
-  resultsContainer: {
-    width: "100%",
-    marginTop: 20,
-    backgroundColor: "#fff",
-    borderRadius: 10,
+  responseCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
     padding: 20,
-    alignItems: "center",
+    width: "100%",
+    marginVertical: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 2,
   },
-  resultsTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#333",
+  responseTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#35343D",
+    marginBottom: 16,
+  },
+  responseText: {
+    fontSize: 16,
+    color: "#35343D",
+    lineHeight: 24,
   },
   resultValueContainer: {
     alignItems: "center",
@@ -505,22 +573,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   resultValue: {
-    color: "#fff",
+    color: "white",
     fontSize: 22,
     fontWeight: "bold",
   },
   resultLabel: {
     fontSize: 16,
-    color: "#333",
+    color: "#666",
   },
   differenceBarContainer: {
     width: "100%",
     marginBottom: 20,
   },
   differenceBar: {
-    height: 20,
-    backgroundColor: "#eee",
-    borderRadius: 10,
+    height: 12,
+    backgroundColor: "#EFEFEF",
+    borderRadius: 6,
     overflow: "hidden",
   },
   differenceBarFill: {
@@ -529,7 +597,7 @@ const styles = StyleSheet.create({
   barLabels: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 5,
+    marginTop: 8,
   },
   barLabelLeft: {
     fontSize: 14,
@@ -544,23 +612,18 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginBottom: 20,
     textAlign: "center",
-    color: "#333",
+    color: "#35343D",
   },
   infoBox: {
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#F9F9FC",
     padding: 15,
-    borderRadius: 5,
+    borderRadius: 12,
     width: "100%",
   },
   infoTitle: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
+    color: "#35343D",
     marginBottom: 8,
-    color: "#1565C0",
-  },
-  infoText: {
-    fontSize: 14,
-    color: "#333",
-    lineHeight: 20,
   },
 });
