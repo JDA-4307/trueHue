@@ -17,7 +17,9 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "This app uses the camera to take pictures for color analysis",
-        "NSPhotoLibraryUsageDescription": "This app accesses your photos to select images for color analysis"
+        "NSPhotoLibraryUsageDescription": "This app accesses your photos to select images for color analysis",
+        "NSUserTrackingUsageDescription": "This identifier will be used to deliver personalized notifications to you.",
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {

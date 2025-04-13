@@ -28,30 +28,38 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="image-picker"
         options={{
-          title: "Home",
+          title: "Image Analyzer",
           headerShown: false, // This will hide the header bar
+          //headerTitleAlign: "center",
+          //headerStyle: {
+          //  alignItems: "center",
+          //},
           tabBarIcon: ({ color, size }) => (
             <Image
-              source={require("../../assets/images/home_icon.png")}
+              source={require("../../assets/images/photo_icon.png")}
               style={{ width: size, height: size, tintColor: color }}
               resizeMode="contain"
             />
           ),
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? "light"].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
+        }}
+      />
+      <Tabs.Screen
+        name="rgb"
+        options={{
+          title: "Compare",
+          headerShown: false, // This will hide the header bar
+          //headerTitleAlign: "center",
+          //headerStyle: {
+          //  alignItems: "center",
+          //},
+          tabBarIcon: ({ color, size }) => (
+            <Image
+              source={require("../../assets/images/photo_icon.png")}
+              style={{ width: size, height: size, tintColor: color }}
+              resizeMode="contain"
+            />
           ),
         }}
       />
@@ -69,21 +77,32 @@ export default function TabLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
-        name="image-picker"
+        name="index"
         options={{
-          title: "Image Analyzer",
+          title: "Settings",
           headerShown: false, // This will hide the header bar
-          //headerTitleAlign: "center",
-          //headerStyle: {
-          //  alignItems: "center",
-          //},
           tabBarIcon: ({ color, size }) => (
             <Image
-              source={require("../../assets/images/photo_icon.png")}
+              source={require("../../assets/images/settingsChat.png")}
               style={{ width: size, height: size, tintColor: color }}
               resizeMode="contain"
             />
+          ),
+          headerRight: () => (
+            <Link href="/modal" asChild>
+              <Pressable>
+                {({ pressed }) => (
+                  <FontAwesome
+                    name="info-circle"
+                    size={25}
+                    color={Colors[colorScheme ?? "light"].text}
+                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                  />
+                )}
+              </Pressable>
+            </Link>
           ),
         }}
       />
