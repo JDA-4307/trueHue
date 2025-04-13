@@ -16,6 +16,12 @@ import axios from "axios";
 import { BACKEND_URLS } from "../../config";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import {
+  useSettings,
+  translations,
+  getThemeColors,
+  scheduleNotification,
+} from "./index";
 
 export default function ImagePickerScreen() {
   const [imageUri, setImageUri] = useState(null);
@@ -30,6 +36,264 @@ export default function ImagePickerScreen() {
   const [hasCameraPermission, setHasCameraPermission] = useState(null);
   const [showWoodTypeButtons, setShowWoodTypeButtons] = useState(false);
   const [showReport, setShowReport] = useState(false);
+
+  // Get settings from context
+  const { settings } = useSettings();
+
+  // Get translations for current language
+  const t = translations[settings.language] || translations.en;
+
+  // Get theme colors
+  const colors = getThemeColors(settings.darkMode, settings.highContrast);
+
+  // Create translations for this screen
+  const screenTranslations = {
+    en: {
+      appTitle: "Wood Analysis Assistant",
+      instruction:
+        "Upload or take a photo of wood to analyze its type and properties",
+      chooseGallery: "Choose from Gallery",
+      takePhoto: "Take a Photo",
+      analyzing: "Analyzing wood type...",
+      generatingReport: "Generating comprehensive report...",
+      selectWoodPrompt: "Select wood type for analysis:",
+      mediumCherry: "Medium Cherry",
+      desertOak: "Desert Oak",
+      graphiteWalnut: "Graphite Walnut",
+      cancel: "Cancel",
+      analyze: "Analyze",
+      generateReport: "Generate Report",
+      newImage: "New Image",
+      colorAnalysis: "Color Analysis",
+      dark: "Dark",
+      light: "Light",
+      analysis: "Analysis",
+      confidence: "Confidence",
+      analysisResults: "Analysis Results",
+      reportTitle: "Comprehensive Analysis",
+      woodClassification: "Wood Classification",
+      unknown: "Unknown",
+      allProbabilities: "All Probabilities:",
+      whatDoesThisMean: "What does this mean?",
+      saveReport: "Save Report",
+      shareResults: "Share Results",
+      noImage: "No image selected",
+      selectFirst: "Please select an image first.",
+      reportGenerated: "Report Generated",
+      seeDetails: "See below for full details",
+      reportSaved: "Report saved successfully!",
+      errorSaving: "Failed to save report.",
+      woodValidation: "Wood Validation",
+      binaryClassification: "Binary Classification",
+      multiclassClassification: "Multiclass Classification",
+      regressionAnalysis: "Regression Analysis",
+      validationClassification: "Validation Classification",
+      result: "Result",
+      value: "Value",
+      analysisNotification: "Analysis Complete",
+      analysisNotificationBody:
+        "Your wood analysis has been completed successfully.",
+      reportNotification: "Report Generated",
+      reportNotificationBody:
+        "Your comprehensive wood report is now ready to view.",
+    },
+    es: {
+      appTitle: "Asistente de análisis de madera",
+      instruction:
+        "Sube o toma una foto de la madera para analizar su tipo y propiedades",
+      chooseGallery: "Elegir de la galería",
+      takePhoto: "Tomar una foto",
+      analyzing: "Analizando tipo de madera...",
+      generatingReport: "Generando informe completo...",
+      selectWoodPrompt: "Seleccione tipo de madera para análisis:",
+      mediumCherry: "Cerezo Medio",
+      desertOak: "Roble Desierto",
+      graphiteWalnut: "Nogal Grafito",
+      cancel: "Cancelar",
+      analyze: "Analizar",
+      generateReport: "Generar informe",
+      newImage: "Nueva imagen",
+      colorAnalysis: "Análisis de color",
+      dark: "Oscuro",
+      light: "Claro",
+      analysis: "Análisis",
+      confidence: "Confianza",
+      analysisResults: "Resultados del análisis",
+      reportTitle: "Análisis completo",
+      woodClassification: "Clasificación de madera",
+      unknown: "Desconocido",
+      allProbabilities: "Todas las probabilidades:",
+      whatDoesThisMean: "¿Qué significa esto?",
+      saveReport: "Guardar informe",
+      shareResults: "Compartir resultados",
+      noImage: "No se ha seleccionado imagen",
+      selectFirst: "Por favor, seleccione una imagen primero.",
+      reportGenerated: "Informe generado",
+      seeDetails: "Ver detalles completos abajo",
+      reportSaved: "¡Informe guardado con éxito!",
+      errorSaving: "Error al guardar el informe.",
+      woodValidation: "Validación de madera",
+      binaryClassification: "Clasificación binaria",
+      multiclassClassification: "Clasificación multiclase",
+      regressionAnalysis: "Análisis de regresión",
+      validationClassification: "Clasificación de validación",
+      result: "Resultado",
+      value: "Valor",
+      analysisNotification: "Análisis Completado",
+      analysisNotificationBody:
+        "Su análisis de madera se ha completado con éxito.",
+      reportNotification: "Informe Generado",
+      reportNotificationBody:
+        "Su informe completo de madera está listo para ver.",
+    },
+    fr: {
+      appTitle: "Assistant d'analyse du bois",
+      instruction:
+        "Téléchargez ou prenez une photo du bois pour analyser son type et ses propriétés",
+      chooseGallery: "Choisir dans la galerie",
+      takePhoto: "Prendre une photo",
+      analyzing: "Analyse du type de bois...",
+      generatingReport: "Génération d'un rapport complet...",
+      selectWoodPrompt: "Sélectionnez le type de bois à analyser :",
+      mediumCherry: "Cerisier Moyen",
+      desertOak: "Chêne Désert",
+      graphiteWalnut: "Noyer Graphite",
+      cancel: "Annuler",
+      analyze: "Analyser",
+      generateReport: "Générer un rapport",
+      newImage: "Nouvelle image",
+      colorAnalysis: "Analyse des couleurs",
+      dark: "Foncé",
+      light: "Clair",
+      analysis: "Analyse",
+      confidence: "Confiance",
+      analysisResults: "Résultats de l'analyse",
+      reportTitle: "Analyse complète",
+      woodClassification: "Classification du bois",
+      unknown: "Inconnu",
+      allProbabilities: "Toutes les probabilités :",
+      whatDoesThisMean: "Qu'est-ce que cela signifie ?",
+      saveReport: "Enregistrer le rapport",
+      shareResults: "Partager les résultats",
+      noImage: "Aucune image sélectionnée",
+      selectFirst: "Veuillez d'abord sélectionner une image.",
+      reportGenerated: "Rapport généré",
+      seeDetails: "Voir les détails complets ci-dessous",
+      reportSaved: "Rapport enregistré avec succès !",
+      errorSaving: "Échec de l'enregistrement du rapport.",
+      woodValidation: "Validation du bois",
+      binaryClassification: "Classification binaire",
+      multiclassClassification: "Classification multiclasse",
+      regressionAnalysis: "Analyse de régression",
+      validationClassification: "Classification de validation",
+      result: "Résultat",
+      value: "Valeur",
+      analysisNotification: "Analyse Terminée",
+      analysisNotificationBody:
+        "Votre analyse de bois a été complétée avec succès.",
+      reportNotification: "Rapport Généré",
+      reportNotificationBody:
+        "Votre rapport complet sur le bois est maintenant prêt à être consulté.",
+    },
+    de: {
+      appTitle: "Holzanalyse-Assistent",
+      instruction:
+        "Laden Sie ein Foto hoch oder machen Sie ein Foto von Holz, um seinen Typ und seine Eigenschaften zu analysieren",
+      chooseGallery: "Aus Galerie wählen",
+      takePhoto: "Foto aufnehmen",
+      analyzing: "Holztyp wird analysiert...",
+      generatingReport: "Umfassender Bericht wird erstellt...",
+      selectWoodPrompt: "Wählen Sie Holztyp für die Analyse:",
+      mediumCherry: "Mittlere Kirsche",
+      desertOak: "Wüsteneiche",
+      graphiteWalnut: "Graphit-Walnuss",
+      cancel: "Abbrechen",
+      analyze: "Analysieren",
+      generateReport: "Bericht erstellen",
+      newImage: "Neues Bild",
+      colorAnalysis: "Farbanalyse",
+      dark: "Dunkel",
+      light: "Hell",
+      analysis: "Analyse",
+      confidence: "Konfidenz",
+      analysisResults: "Analyseergebnisse",
+      reportTitle: "Umfassende Analyse",
+      woodClassification: "Holzklassifizierung",
+      unknown: "Unbekannt",
+      allProbabilities: "Alle Wahrscheinlichkeiten:",
+      whatDoesThisMean: "Was bedeutet das?",
+      saveReport: "Bericht speichern",
+      shareResults: "Ergebnisse teilen",
+      noImage: "Kein Bild ausgewählt",
+      selectFirst: "Bitte wählen Sie zuerst ein Bild aus.",
+      reportGenerated: "Bericht erstellt",
+      seeDetails: "Vollständige Details unten anzeigen",
+      reportSaved: "Bericht erfolgreich gespeichert!",
+      errorSaving: "Fehler beim Speichern des Berichts.",
+      woodValidation: "Holzvalidierung",
+      binaryClassification: "Binäre Klassifizierung",
+      multiclassClassification: "Mehrklassen-Klassifizierung",
+      regressionAnalysis: "Regressionsanalyse",
+      validationClassification: "Validierungsklassifizierung",
+      result: "Ergebnis",
+      value: "Wert",
+      analysisNotification: "Analyse Abgeschlossen",
+      analysisNotificationBody:
+        "Ihre Holzanalyse wurde erfolgreich abgeschlossen.",
+      reportNotification: "Bericht Erstellt",
+      reportNotificationBody:
+        "Ihr umfassender Holzbericht ist jetzt zur Ansicht bereit.",
+    },
+    zh: {
+      appTitle: "木材分析助手",
+      instruction: "上传或拍摄木材照片，分析其类型和特性",
+      chooseGallery: "从相册选择",
+      takePhoto: "拍照",
+      analyzing: "正在分析木材类型...",
+      generatingReport: "正在生成综合报告...",
+      selectWoodPrompt: "选择木材类型进行分析：",
+      mediumCherry: "中等樱桃木",
+      desertOak: "沙漠橡木",
+      graphiteWalnut: "石墨胡桃木",
+      cancel: "取消",
+      analyze: "分析",
+      generateReport: "生成报告",
+      newImage: "新图像",
+      colorAnalysis: "颜色分析",
+      dark: "深色",
+      light: "浅色",
+      analysis: "分析",
+      confidence: "置信度",
+      analysisResults: "分析结果",
+      reportTitle: "综合分析",
+      woodClassification: "木材分类",
+      unknown: "未知",
+      allProbabilities: "所有概率：",
+      whatDoesThisMean: "这意味着什么？",
+      saveReport: "保存报告",
+      shareResults: "分享结果",
+      noImage: "未选择图像",
+      selectFirst: "请先选择一张图像。",
+      reportGenerated: "报告已生成",
+      seeDetails: "查看以下完整详情",
+      reportSaved: "报告保存成功！",
+      errorSaving: "保存报告失败。",
+      woodValidation: "木材验证",
+      binaryClassification: "二元分类",
+      multiclassClassification: "多类分类",
+      regressionAnalysis: "回归分析",
+      validationClassification: "验证分类",
+      result: "结果",
+      value: "值",
+      analysisNotification: "分析完成",
+      analysisNotificationBody: "您的木材分析已成功完成。",
+      reportNotification: "报告已生成",
+      reportNotificationBody: "您的综合木材报告现已准备好查看。",
+    },
+  };
+
+  // Get translations for this screen
+  const st = screenTranslations[settings.language] || screenTranslations.en;
 
   const subject = "Check this out!";
   const body = "Hey, I wanted to share this with you.\n\nBest regards!";
@@ -51,7 +315,10 @@ export default function ImagePickerScreen() {
   // Pick image from gallery
   const pickImage = async () => {
     if (hasGalleryPermission === false) {
-      return Alert.alert("Permission for media access not granted.");
+      return Alert.alert(
+        st.noImage,
+        "Permission for media access not granted."
+      );
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -77,7 +344,10 @@ export default function ImagePickerScreen() {
   // Take picture with camera
   const takePicture = async () => {
     if (hasCameraPermission === false) {
-      return Alert.alert("Permission for camera access is not granted.");
+      return Alert.alert(
+        st.noImage,
+        "Permission for camera access is not granted."
+      );
     }
 
     const result = await ImagePicker.launchCameraAsync({
@@ -102,17 +372,65 @@ export default function ImagePickerScreen() {
 
   // Helper: Get a label based on the regression score
   const getPositionLabel = (score) => {
-    if (score < -0.5) return "Very Dark";
-    if (score < -0.1) return "Dark";
-    if (score < 0.1) return "Well In Range";
-    if (score < 0.5) return "Light";
-    return "Very Light";
+    if (score < -0.5)
+      return settings.language === "en"
+        ? "Very Dark"
+        : settings.language === "es"
+        ? "Muy Oscuro"
+        : settings.language === "fr"
+        ? "Très Foncé"
+        : settings.language === "de"
+        ? "Sehr Dunkel"
+        : "非常深";
+
+    if (score < -0.1)
+      return settings.language === "en"
+        ? "Dark"
+        : settings.language === "es"
+        ? "Oscuro"
+        : settings.language === "fr"
+        ? "Foncé"
+        : settings.language === "de"
+        ? "Dunkel"
+        : "深色";
+
+    if (score < 0.1)
+      return settings.language === "en"
+        ? "Well In Range"
+        : settings.language === "es"
+        ? "Bien en Rango"
+        : settings.language === "fr"
+        ? "Bien dans la Gamme"
+        : settings.language === "de"
+        ? "Gut im Bereich"
+        : "在范围内";
+
+    if (score < 0.5)
+      return settings.language === "en"
+        ? "Light"
+        : settings.language === "es"
+        ? "Claro"
+        : settings.language === "fr"
+        ? "Clair"
+        : settings.language === "de"
+        ? "Hell"
+        : "浅色";
+
+    return settings.language === "en"
+      ? "Very Light"
+      : settings.language === "es"
+      ? "Muy Claro"
+      : settings.language === "fr"
+      ? "Très Clair"
+      : settings.language === "de"
+      ? "Sehr Hell"
+      : "非常浅";
   };
 
   // Modified analyze function - now shows wood type buttons
   const analyzeImage = () => {
     if (!imageUri || !imageBase64) {
-      Alert.alert("No image selected", "Please select an image first.");
+      Alert.alert(st.noImage, st.selectFirst);
       return;
     }
 
@@ -185,6 +503,13 @@ export default function ImagePickerScreen() {
       setResponseText(resultText);
       Alert.alert("Analysis Result", resultText);
       setShowWoodTypeButtons(false);
+
+      // Send notification if enabled
+      await scheduleNotification(
+        st.analysisNotification,
+        st.analysisNotificationBody,
+        settings
+      );
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error("Analyze Error:", error.response?.data || error.message);
@@ -203,7 +528,7 @@ export default function ImagePickerScreen() {
   // Generate Full Report
   const generateFullReport = async () => {
     if (!imageUri || !imageBase64) {
-      Alert.alert("No image selected", "Please select an image first.");
+      Alert.alert(st.noImage, st.selectFirst);
       return;
     }
 
@@ -232,14 +557,18 @@ export default function ImagePickerScreen() {
 
       setReportData(response.data);
 
-      const woodType = response.data.wood_type?.classification || "Unknown";
+      const woodType = response.data.wood_type?.classification || st.unknown;
       const summary = `Wood Type: ${woodType}\nConfidence: ${response.data.wood_type?.confidence.toFixed(
         2
       )}%`;
 
-      Alert.alert(
-        "Report Generated",
-        summary + "\n\nSee below for full details"
+      Alert.alert(st.reportGenerated, summary + "\n\n" + st.seeDetails);
+
+      // Send notification if enabled
+      await scheduleNotification(
+        st.reportNotification,
+        st.reportNotificationBody,
+        settings
       );
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -277,32 +606,39 @@ export default function ImagePickerScreen() {
     }
 
     return (
-      <View style={styles.specializedTestsContainer}>
-        <Text style={styles.sectionHeader}>Wood Validation</Text>
+      <View style={dynamicStyles.specializedTestsContainer}>
+        <Text style={dynamicStyles.sectionHeader}>{st.woodValidation}</Text>
 
         {reportData.specialized_tests.binary && (
-          <View style={styles.testSection}>
-            <Text style={styles.testHeader}>Binary Classification</Text>
-            <Text style={styles.testResult}>
-              Result: {reportData.specialized_tests.binary.predicted_class}
+          <View style={dynamicStyles.testSection}>
+            <Text style={dynamicStyles.testHeader}>
+              {st.binaryClassification}
+            </Text>
+            <Text style={dynamicStyles.testResult}>
+              {st.result}: {reportData.specialized_tests.binary.predicted_class}
             </Text>
           </View>
         )}
 
         {reportData.specialized_tests.multiclass && (
-          <View style={styles.testSection}>
-            <Text style={styles.testHeader}>Multiclass Classification</Text>
-            <Text style={styles.testResult}>
-              Result: {reportData.specialized_tests.multiclass.predicted_class}
+          <View style={dynamicStyles.testSection}>
+            <Text style={dynamicStyles.testHeader}>
+              {st.multiclassClassification}
+            </Text>
+            <Text style={dynamicStyles.testResult}>
+              {st.result}:{" "}
+              {reportData.specialized_tests.multiclass.predicted_class}
             </Text>
           </View>
         )}
 
         {reportData.specialized_tests.regression && (
-          <View style={styles.testSection}>
-            <Text style={styles.testHeader}>Regression Analysis</Text>
-            <Text style={styles.testResult}>
-              Value:{" "}
+          <View style={dynamicStyles.testSection}>
+            <Text style={dynamicStyles.testHeader}>
+              {st.regressionAnalysis}
+            </Text>
+            <Text style={dynamicStyles.testResult}>
+              {st.value}:{" "}
               {reportData.specialized_tests.regression.predicted_value.toFixed(
                 4
               )}
@@ -311,10 +647,13 @@ export default function ImagePickerScreen() {
         )}
 
         {reportData.specialized_tests.validation && (
-          <View style={styles.testSection}>
-            <Text style={styles.testHeader}>Validation Classification</Text>
-            <Text style={styles.testResult}>
-              Result: {reportData.specialized_tests.validation.predicted_class}
+          <View style={dynamicStyles.testSection}>
+            <Text style={dynamicStyles.testHeader}>
+              {st.validationClassification}
+            </Text>
+            <Text style={dynamicStyles.testResult}>
+              {st.result}:{" "}
+              {reportData.specialized_tests.validation.predicted_class}
             </Text>
           </View>
         )}
@@ -324,7 +663,7 @@ export default function ImagePickerScreen() {
 
   const saveReport = async () => {
     if (!reportData) {
-      Alert.alert("No report available", "Please generate a report first.");
+      Alert.alert(st.noImage, st.selectFirst);
       return;
     }
 
@@ -332,163 +671,551 @@ export default function ImagePickerScreen() {
       const docRef = await addDoc(collection(db, "Reports"), {
         Accuracy: reportData.wood_type?.confidence,
         Date: new Date().toISOString(),
-        Wood: reportData.wood_type?.classification || "Unknown",
+        Wood: reportData.wood_type?.classification || st.unknown,
       });
       console.log("Document written with ID: ", docRef.id);
-      Alert.alert("Success", "Report saved successfully!");
+      Alert.alert("Success", st.reportSaved);
     } catch (e) {
       console.error("Error adding document: ", e);
-      Alert.alert("Error", "Failed to save report.");
+      Alert.alert("Error", st.errorSaving);
     }
   };
 
+  // Create dynamic styles based on theme
+  const dynamicStyles = StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContainer: {
+      flexGrow: 1,
+    },
+    container: {
+      flex: 1,
+      padding: 24,
+      backgroundColor: colors.background,
+    },
+    appTitle: {
+      fontSize: 28,
+      fontWeight: "600",
+      color: colors.text,
+      textAlign: "center",
+      marginBottom: 16,
+      marginTop: 8,
+    },
+    instructionText: {
+      fontSize: 17,
+      color: colors.secondaryText,
+      textAlign: "center",
+      marginBottom: 32,
+      lineHeight: 24,
+    },
+    startContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+      marginTop: 40,
+    },
+    initialButtonsContainer: {
+      width: "100%",
+      alignItems: "center",
+      gap: 16,
+    },
+    primaryButton: {
+      backgroundColor: colors.primary,
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    secondaryButton: {
+      backgroundColor: "transparent",
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    buttonText: {
+      color: "white",
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    secondaryButtonText: {
+      color: colors.primary,
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    analysisContainer: {
+      alignItems: "center",
+      width: "100%",
+    },
+    imageFrame: {
+      marginVertical: 20,
+      borderRadius: 16,
+      padding: 4,
+      backgroundColor: colors.card,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    image: {
+      width: 300,
+      height: 300,
+      borderRadius: 12,
+    },
+    loaderContainer: {
+      alignItems: "center",
+      marginVertical: 24,
+    },
+    loaderText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: colors.primary,
+    },
+    woodTypeButtonsContainer: {
+      width: "100%",
+      marginVertical: 16,
+      alignItems: "center",
+      gap: 12,
+    },
+    woodTypePrompt: {
+      fontSize: 18,
+      fontWeight: "500",
+      color: colors.text,
+      marginBottom: 8,
+    },
+    woodTypeButton: {
+      backgroundColor: colors.primary,
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+      width: "100%",
+      alignItems: "center",
+    },
+    cancelButton: {
+      backgroundColor: "transparent",
+      paddingVertical: 14,
+      marginTop: 8,
+    },
+    cancelButtonText: {
+      color: colors.secondaryText,
+      fontSize: 16,
+      fontWeight: "500",
+    },
+    actionButtonsContainer: {
+      flexDirection: "column",
+      width: "100%",
+      marginVertical: 16,
+      gap: 12,
+    },
+    actionButton: {
+      backgroundColor: colors.primary,
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    resetButton: {
+      backgroundColor: "transparent",
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginTop: 4,
+    },
+    resetButtonText: {
+      color: colors.secondaryText,
+      fontSize: 16,
+      fontWeight: "500",
+    },
+    spectrumCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 20,
+      width: "100%",
+      marginVertical: 16,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    spectrumTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.text,
+      marginBottom: 16,
+    },
+    spectrumContainer: {
+      width: "100%",
+    },
+    spectrumLabels: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 8,
+    },
+    spectrumLabel: {
+      fontSize: 14,
+      color: colors.secondaryText,
+    },
+    spectrumBar: {
+      height: 12,
+      backgroundColor: colors.darkMode ? "#333333" : "#EFEFEF",
+      borderRadius: 6,
+      overflow: "hidden",
+      position: "relative",
+    },
+    spectrumFill: {
+      height: "100%",
+      backgroundColor: colors.primary,
+      borderRadius: 6,
+    },
+    spectrumMarker: {
+      position: "absolute",
+      top: -4,
+      marginLeft: -6,
+      width: 12,
+      height: 20,
+      backgroundColor: "#5E35B1",
+      borderRadius: 6,
+    },
+    positionLabel: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.text,
+      marginTop: 16,
+      textAlign: "center",
+    },
+    confidenceLabel: {
+      fontSize: 14,
+      color: colors.secondaryText,
+      marginTop: 4,
+      textAlign: "center",
+    },
+    responseCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 20,
+      width: "100%",
+      marginVertical: 16,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    responseTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.text,
+      marginBottom: 12,
+    },
+    responseText: {
+      fontSize: 16,
+      color: colors.text,
+      lineHeight: 24,
+    },
+    reportContainer: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 24,
+      width: "100%",
+      marginVertical: 16,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    reportTitle: {
+      fontSize: 22,
+      fontWeight: "600",
+      color: colors.text,
+      marginBottom: 20,
+      textAlign: "center",
+    },
+    reportSection: {
+      marginBottom: 24,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.darkMode ? "#333333" : "#EFEFEF",
+      paddingBottom: 20,
+    },
+    sectionHeader: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.text,
+      marginBottom: 12,
+    },
+    woodType: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: colors.primary,
+      marginBottom: 8,
+    },
+    confidence: {
+      fontSize: 16,
+      color: colors.secondaryText,
+      marginBottom: 16,
+    },
+    probabilitiesContainer: {
+      marginTop: 16,
+    },
+    probabilitiesHeader: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.text,
+      marginBottom: 12,
+    },
+    probabilityRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 8,
+    },
+    probabilityName: {
+      width: 120,
+      fontSize: 14,
+      color: colors.secondaryText,
+    },
+    probabilityValue: {
+      width: 60,
+      fontSize: 14,
+      textAlign: "right",
+      color: colors.text,
+    },
+    probabilityBar: {
+      flex: 1,
+      height: 8,
+      backgroundColor: colors.darkMode ? "#333333" : "#EFEFEF",
+      borderRadius: 4,
+      marginLeft: 12,
+      overflow: "hidden",
+    },
+    probabilityFill: {
+      height: "100%",
+      backgroundColor: colors.primary,
+    },
+    specializedTestsContainer: {
+      marginBottom: 24,
+    },
+    testSection: {
+      backgroundColor: colors.darkMode ? "#222222" : "#F9F9FC",
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 12,
+    },
+    testHeader: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.text,
+      marginBottom: 8,
+    },
+    testResult: {
+      fontSize: 15,
+      color: colors.secondaryText,
+    },
+    reportActions: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: 12,
+      gap: 16,
+    },
+    saveButton: {
+      flex: 1,
+      backgroundColor: colors.primary,
+      paddingVertical: 14,
+      borderRadius: 10,
+      alignItems: "center",
+    },
+    shareButton: {
+      flex: 1,
+      backgroundColor: "#5E35B1",
+      paddingVertical: 14,
+      borderRadius: 10,
+      alignItems: "center",
+    },
+  });
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.container}>
-          <Text style={styles.appTitle}>Wood Analysis Assistant</Text>
+    <SafeAreaView style={dynamicStyles.safeArea}>
+      <ScrollView contentContainerStyle={dynamicStyles.scrollContainer}>
+        <View style={dynamicStyles.container}>
+          <Text style={dynamicStyles.appTitle}>{st.appTitle}</Text>
 
           {!imageUri ? (
-            <View style={styles.startContainer}>
-              <Text style={styles.instructionText}>
-                Upload or take a photo of wood to analyze its type and
-                properties
+            <View style={dynamicStyles.startContainer}>
+              <Text style={dynamicStyles.instructionText}>
+                {st.instruction}
               </Text>
 
-              <View style={styles.initialButtonsContainer}>
+              <View style={dynamicStyles.initialButtonsContainer}>
                 <TouchableOpacity
-                  style={styles.primaryButton}
+                  style={dynamicStyles.primaryButton}
                   onPress={pickImage}
                 >
-                  <Text style={styles.buttonText}>Choose from Gallery</Text>
+                  <Text style={dynamicStyles.buttonText}>
+                    {st.chooseGallery}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.secondaryButton}
+                  style={dynamicStyles.secondaryButton}
                   onPress={takePicture}
                 >
-                  <Text style={styles.secondaryButtonText}>Take a Photo</Text>
+                  <Text style={dynamicStyles.secondaryButtonText}>
+                    {st.takePhoto}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : (
-            <View style={styles.analysisContainer}>
-              <View style={styles.imageFrame}>
-                <Image source={{ uri: imageUri }} style={styles.image} />
+            <View style={dynamicStyles.analysisContainer}>
+              <View style={dynamicStyles.imageFrame}>
+                <Image source={{ uri: imageUri }} style={dynamicStyles.image} />
               </View>
 
               {/* Loading indicators */}
               {isLoading && (
-                <View style={styles.loaderContainer}>
-                  <ActivityIndicator size="large" color="#8A3FFC" />
-                  <Text style={styles.loaderText}>Analyzing wood type...</Text>
+                <View style={dynamicStyles.loaderContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={dynamicStyles.loaderText}>{st.analyzing}</Text>
                 </View>
               )}
 
               {isGeneratingReport && (
-                <View style={styles.loaderContainer}>
-                  <ActivityIndicator size="large" color="#8A3FFC" />
-                  <Text style={styles.loaderText}>
-                    Generating comprehensive report...
+                <View style={dynamicStyles.loaderContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={dynamicStyles.loaderText}>
+                    {st.generatingReport}
                   </Text>
                 </View>
               )}
 
               {/* Wood Type Selection Buttons */}
               {showWoodTypeButtons && !isLoading && (
-                <View style={styles.woodTypeButtonsContainer}>
-                  <Text style={styles.woodTypePrompt}>
-                    Select wood type for analysis:
+                <View style={dynamicStyles.woodTypeButtonsContainer}>
+                  <Text style={dynamicStyles.woodTypePrompt}>
+                    {st.selectWoodPrompt}
                   </Text>
 
                   <TouchableOpacity
-                    style={styles.woodTypeButton}
+                    style={dynamicStyles.woodTypeButton}
                     onPress={() => analyzeByWoodType("Medium Cherry")}
                   >
-                    <Text style={styles.buttonText}>Medium Cherry</Text>
+                    <Text style={dynamicStyles.buttonText}>
+                      {st.mediumCherry}
+                    </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.woodTypeButton}
+                    style={dynamicStyles.woodTypeButton}
                     onPress={() => analyzeByWoodType("Desert Oak")}
                   >
-                    <Text style={styles.buttonText}>Desert Oak</Text>
+                    <Text style={dynamicStyles.buttonText}>{st.desertOak}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.woodTypeButton}
+                    style={dynamicStyles.woodTypeButton}
                     onPress={() => analyzeByWoodType("Graphite Walnut")}
                   >
-                    <Text style={styles.buttonText}>Graphite Walnut</Text>
+                    <Text style={dynamicStyles.buttonText}>
+                      {st.graphiteWalnut}
+                    </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.cancelButton}
+                    style={dynamicStyles.cancelButton}
                     onPress={() => setShowWoodTypeButtons(false)}
                   >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                    <Text style={dynamicStyles.cancelButtonText}>
+                      {st.cancel}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
 
               {/* Action Buttons */}
               {!isLoading && !isGeneratingReport && !showWoodTypeButtons && (
-                <View style={styles.actionButtonsContainer}>
+                <View style={dynamicStyles.actionButtonsContainer}>
                   <TouchableOpacity
-                    style={styles.actionButton}
+                    style={dynamicStyles.actionButton}
                     onPress={analyzeImage}
                   >
-                    <Text style={styles.buttonText}>Analyze</Text>
+                    <Text style={dynamicStyles.buttonText}>{st.analyze}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.actionButton}
+                    style={dynamicStyles.actionButton}
                     onPress={generateFullReport}
                   >
-                    <Text style={styles.buttonText}>Generate Report</Text>
+                    <Text style={dynamicStyles.buttonText}>
+                      {st.generateReport}
+                    </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.resetButton}
+                    style={dynamicStyles.resetButton}
                     onPress={reuploadImage}
                   >
-                    <Text style={styles.resetButtonText}>New Image</Text>
+                    <Text style={dynamicStyles.resetButtonText}>
+                      {st.newImage}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
 
               {/* Spectrum Bar */}
               {positionScore !== null && (
-                <View style={styles.spectrumCard}>
-                  <Text style={styles.spectrumTitle}>Color Analysis</Text>
+                <View style={dynamicStyles.spectrumCard}>
+                  <Text style={dynamicStyles.spectrumTitle}>
+                    {st.colorAnalysis}
+                  </Text>
 
-                  <View style={styles.spectrumContainer}>
-                    <View style={styles.spectrumLabels}>
-                      <Text style={styles.spectrumLabel}>Dark</Text>
-                      <Text style={styles.spectrumLabel}>Light</Text>
+                  <View style={dynamicStyles.spectrumContainer}>
+                    <View style={dynamicStyles.spectrumLabels}>
+                      <Text style={dynamicStyles.spectrumLabel}>{st.dark}</Text>
+                      <Text style={dynamicStyles.spectrumLabel}>
+                        {st.light}
+                      </Text>
                     </View>
 
-                    <View style={styles.spectrumBar}>
+                    <View style={dynamicStyles.spectrumBar}>
                       <View
                         style={[
-                          styles.spectrumFill,
+                          dynamicStyles.spectrumFill,
                           { width: `${((positionScore + 1) / 2) * 100}%` },
                         ]}
                       />
                       <View
                         style={[
-                          styles.spectrumMarker,
+                          dynamicStyles.spectrumMarker,
                           { left: `${((positionScore + 1) / 2) * 100}%` },
                         ]}
                       />
                     </View>
 
-                    <Text style={styles.positionLabel}>
-                      Analysis: {getPositionLabel(positionScore)} (
+                    <Text style={dynamicStyles.positionLabel}>
+                      {st.analysis}: {getPositionLabel(positionScore)} (
                       {positionScore.toFixed(2)})
                     </Text>
-                    <Text style={styles.confidenceLabel}>
-                      Confidence: {confidence?.toFixed(2)}%
+                    <Text style={dynamicStyles.confidenceLabel}>
+                      {st.confidence}: {confidence?.toFixed(2)}%
                     </Text>
                   </View>
                 </View>
@@ -496,46 +1223,53 @@ export default function ImagePickerScreen() {
 
               {/* Response Text */}
               {responseText && (
-                <View style={styles.responseCard}>
-                  <Text style={styles.responseTitle}>Analysis Results</Text>
-                  <Text style={styles.responseText}>{responseText}</Text>
+                <View style={dynamicStyles.responseCard}>
+                  <Text style={dynamicStyles.responseTitle}>
+                    {st.analysisResults}
+                  </Text>
+                  <Text style={dynamicStyles.responseText}>{responseText}</Text>
                 </View>
               )}
 
               {/* Full Report Results */}
               {reportData && (
-                <View style={styles.reportContainer}>
-                  <Text style={styles.reportTitle}>Comprehensive Analysis</Text>
+                <View style={dynamicStyles.reportContainer}>
+                  <Text style={dynamicStyles.reportTitle}>
+                    {st.reportTitle}
+                  </Text>
 
-                  <View style={styles.reportSection}>
-                    <Text style={styles.sectionHeader}>
-                      Wood Classification
+                  <View style={dynamicStyles.reportSection}>
+                    <Text style={dynamicStyles.sectionHeader}>
+                      {st.woodClassification}
                     </Text>
-                    <Text style={styles.woodType}>
-                      {reportData.wood_type?.classification || "Unknown"}
+                    <Text style={dynamicStyles.woodType}>
+                      {reportData.wood_type?.classification || st.unknown}
                     </Text>
-                    <Text style={styles.confidence}>
-                      Confidence: {reportData.wood_type?.confidence.toFixed(2)}%
+                    <Text style={dynamicStyles.confidence}>
+                      {st.confidence}:{" "}
+                      {reportData.wood_type?.confidence.toFixed(2)}%
                     </Text>
 
                     {/* Probability distribution */}
                     {reportData.wood_type?.all_probabilities && (
-                      <View style={styles.probabilitiesContainer}>
-                        <Text style={styles.probabilitiesHeader}>
-                          All Probabilities:
+                      <View style={dynamicStyles.probabilitiesContainer}>
+                        <Text style={dynamicStyles.probabilitiesHeader}>
+                          {st.allProbabilities}
                         </Text>
                         {Object.entries(
                           reportData.wood_type.all_probabilities
                         ).map(([key, value]) => (
-                          <View key={key} style={styles.probabilityRow}>
-                            <Text style={styles.probabilityName}>{key}</Text>
-                            <Text style={styles.probabilityValue}>
+                          <View key={key} style={dynamicStyles.probabilityRow}>
+                            <Text style={dynamicStyles.probabilityName}>
+                              {key}
+                            </Text>
+                            <Text style={dynamicStyles.probabilityValue}>
                               {value.toFixed(2)}%
                             </Text>
-                            <View style={styles.probabilityBar}>
+                            <View style={dynamicStyles.probabilityBar}>
                               <View
                                 style={[
-                                  styles.probabilityFill,
+                                  dynamicStyles.probabilityFill,
                                   { width: `${value}%` },
                                 ]}
                               />
@@ -548,19 +1282,23 @@ export default function ImagePickerScreen() {
 
                   {renderSpecializedTests()}
 
-                  <View style={styles.reportActions}>
+                  <View style={dynamicStyles.reportActions}>
                     <TouchableOpacity
-                      style={styles.saveButton}
+                      style={dynamicStyles.saveButton}
                       onPress={saveReport}
                     >
-                      <Text style={styles.buttonText}>Save Report</Text>
+                      <Text style={dynamicStyles.buttonText}>
+                        {st.saveReport}
+                      </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={styles.shareButton}
+                      style={dynamicStyles.shareButton}
                       onPress={() => Linking.openURL(mailtoLink)}
                     >
-                      <Text style={styles.buttonText}>Share Results</Text>
+                      <Text style={dynamicStyles.buttonText}>
+                        {st.shareResults}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -572,373 +1310,3 @@ export default function ImagePickerScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F9F9FC",
-  },
-  scrollContainer: {
-    flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    padding: 24,
-    backgroundColor: "#F9F9FC",
-  },
-  appTitle: {
-    fontSize: 28,
-    fontWeight: "600",
-    color: "#35343D",
-    textAlign: "center",
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  startContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-    marginTop: 40,
-  },
-  instructionText: {
-    fontSize: 17,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 32,
-    lineHeight: 24,
-  },
-  initialButtonsContainer: {
-    width: "100%",
-    alignItems: "center",
-    gap: 16,
-  },
-  primaryButton: {
-    backgroundColor: "#8A3FFC", // Claude's purple
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#8A3FFC",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  secondaryButton: {
-    backgroundColor: "transparent",
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#8A3FFC",
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  secondaryButtonText: {
-    color: "#8A3FFC",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  analysisContainer: {
-    alignItems: "center",
-    width: "100%",
-  },
-  imageFrame: {
-    marginVertical: 20,
-    borderRadius: 16,
-    padding: 4,
-    backgroundColor: "white",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  image: {
-    width: 300,
-    height: 300,
-    borderRadius: 12,
-  },
-  loaderContainer: {
-    alignItems: "center",
-    marginVertical: 24,
-  },
-  loaderText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#8A3FFC",
-  },
-  woodTypeButtonsContainer: {
-    width: "100%",
-    marginVertical: 16,
-    alignItems: "center",
-    gap: 12,
-  },
-  woodTypePrompt: {
-    fontSize: 18,
-    fontWeight: "500",
-    color: "#35343D",
-    marginBottom: 8,
-  },
-  woodTypeButton: {
-    backgroundColor: "#8A3FFC",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    width: "100%",
-    alignItems: "center",
-  },
-  cancelButton: {
-    backgroundColor: "transparent",
-    paddingVertical: 14,
-    marginTop: 8,
-  },
-  cancelButtonText: {
-    color: "#666",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  actionButtonsContainer: {
-    flexDirection: "column",
-    width: "100%",
-    marginVertical: 16,
-    gap: 12,
-  },
-  actionButton: {
-    backgroundColor: "#8A3FFC",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  resetButton: {
-    backgroundColor: "transparent",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#D9D9E3",
-    marginTop: 4,
-  },
-  resetButtonText: {
-    color: "#666",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  spectrumCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 20,
-    width: "100%",
-    marginVertical: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  spectrumTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#35343D",
-    marginBottom: 16,
-  },
-  spectrumContainer: {
-    width: "100%",
-  },
-  spectrumLabels: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  spectrumLabel: {
-    fontSize: 14,
-    color: "#666",
-  },
-  spectrumBar: {
-    height: 12,
-    backgroundColor: "#EFEFEF",
-    borderRadius: 6,
-    overflow: "hidden",
-    position: "relative",
-  },
-  spectrumFill: {
-    height: "100%",
-    backgroundColor: "#8A3FFC",
-    borderRadius: 6,
-  },
-  spectrumMarker: {
-    position: "absolute",
-    top: -4,
-    marginLeft: -6,
-    width: 12,
-    height: 20,
-    backgroundColor: "#5E35B1",
-    borderRadius: 6,
-  },
-  positionLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#35343D",
-    marginTop: 16,
-    textAlign: "center",
-  },
-  confidenceLabel: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
-    textAlign: "center",
-  },
-  responseCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 20,
-    width: "100%",
-    marginVertical: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  responseTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#35343D",
-    marginBottom: 12,
-  },
-  responseText: {
-    fontSize: 16,
-    color: "#35343D",
-    lineHeight: 24,
-  },
-  reportContainer: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 24,
-    width: "100%",
-    marginVertical: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  reportTitle: {
-    fontSize: 22,
-    fontWeight: "600",
-    color: "#35343D",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  reportSection: {
-    marginBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EFEFEF",
-    paddingBottom: 20,
-  },
-  sectionHeader: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#35343D",
-    marginBottom: 12,
-  },
-  woodType: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#8A3FFC",
-    marginBottom: 8,
-  },
-  confidence: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 16,
-  },
-  probabilitiesContainer: {
-    marginTop: 16,
-  },
-  probabilitiesHeader: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#35343D",
-    marginBottom: 12,
-  },
-  probabilityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  probabilityName: {
-    width: 120,
-    fontSize: 14,
-    color: "#666",
-  },
-  probabilityValue: {
-    width: 60,
-    fontSize: 14,
-    textAlign: "right",
-    color: "#35343D",
-  },
-  probabilityBar: {
-    flex: 1,
-    height: 8,
-    backgroundColor: "#EFEFEF",
-    borderRadius: 4,
-    marginLeft: 12,
-    overflow: "hidden",
-  },
-  probabilityFill: {
-    height: "100%",
-    backgroundColor: "#8A3FFC",
-  },
-  specializedTestsContainer: {
-    marginBottom: 24,
-  },
-  testSection: {
-    backgroundColor: "#F9F9FC",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  testHeader: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#35343D",
-    marginBottom: 8,
-  },
-  testResult: {
-    fontSize: 15,
-    color: "#666",
-  },
-  reportActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
-    gap: 16,
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: "#8A3FFC",
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  shareButton: {
-    flex: 1,
-    backgroundColor: "#5E35B1",
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-});
