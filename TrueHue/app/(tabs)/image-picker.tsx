@@ -16,6 +16,7 @@ import axios from "axios";
 import { BACKEND_URLS } from "../../config";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import { theme } from "../../styles"; // Import the theme
 
 export default function ImagePickerScreen() {
   const [imageUri, setImageUri] = useState(null);
