@@ -14,6 +14,19 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
  6. Run the app on the platform of your choice. 
 
 ## Release Notes
+### Version 0.5.0:
+
+#### Features
+* UI changes - adding settings for dark mode.
+* Push Notifications
+* Autosave
+* Multilanguage
+
+#### Bug Fixes
+- Fixed UI Displays where multiple results were displayed that were inconsistent with each other.
+
+#### **Known Issues**
+- May not be 100% accurate.
 
 ### Version 0.4.0:
 
