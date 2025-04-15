@@ -11,7 +11,8 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
  3. Install Expo CLI onto your computer by using this command in the terminal: ```npm install -g expo-cli8```
  4. Navigate to the backend folder in the terminal and enter ```python server.py```
  5. Navigate to the TrueHue folder in the terminal and enter ```npx expo start``` , ```npm start``` should also work
- 6. Run the app on the platform of your choice. 
+ 6. Run the app on the platform of your choice.
+ 7. If you want to run on mobile devices make sure to change local host to your ip address in config.js.
 
 ## Release Notes
 ### Version 0.5.0:
@@ -24,6 +25,7 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
 
 #### Bug Fixes
 - Fixed UI Displays where multiple results were displayed that were inconsistent with each other.
+- Fixed UI Displaying desired percentage.
 
 #### **Known Issues**
 - May not be 100% accurate.
