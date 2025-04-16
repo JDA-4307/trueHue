@@ -13,7 +13,9 @@ import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { Ionicons } from "@expo/vector-icons";
-import { useSettings, translations, getThemeColors } from "./index";
+import { useSettings, getThemeColors } from "./index";
+import translations from "../../assets/translations/textTranslationsIndex";
+import screenTranslations from "../../assets/translations/textTranslationsTwo";
 
 interface Report {
   id: string;
@@ -51,113 +53,6 @@ const Two = () => {
   const colors = getThemeColors(settings.darkMode, settings.highContrast);
 
   // Create translations for this screen
-  const screenTranslations = {
-    en: {
-      appTitle: "Wood Identification Reports",
-      filterBy: "Filter by:",
-      month: "Month",
-      day: "Day",
-      year: "Year",
-      woodType: "Wood Type",
-      allMonths: "All Months",
-      allDays: "All Days",
-      allYears: "All Years",
-      all: "All",
-      graphiteWalnut: "Graphite Walnut",
-      mediumCherry: "Medium Cherry",
-      desertOak: "Desert Oak",
-      loadingReports: "Loading reports...",
-      noReportsMatch: "No reports match your filters",
-      reportTitle: "Wood Report Details",
-      reportContent:
-        "This is a detailed report of your wood analysis. The results are based on the image you provided.\nThe analysis includes the classification of the wood type, confidence levels, and any specialized tests that were performed.\n\nReport Summary:\n- Wood Type: {wood_type}\n- Accuracy: {accuracy}%\n- Date: {date}\n\nPlease review the results carefully and let us know if you have any questions or need further assistance.",
-      errorSharing: "Error sharing report:",
-    },
-    es: {
-      appTitle: "Informes de Identificación de Madera",
-      filterBy: "Filtrar por:",
-      month: "Mes",
-      day: "Día",
-      year: "Año",
-      woodType: "Tipo de Madera",
-      allMonths: "Todos los Meses",
-      allDays: "Todos los Días",
-      allYears: "Todos los Años",
-      all: "Todos",
-      graphiteWalnut: "Nogal Grafito",
-      mediumCherry: "Cerezo Medio",
-      desertOak: "Roble Desierto",
-      loadingReports: "Cargando informes...",
-      noReportsMatch: "Ningún informe coincide con tus filtros",
-      reportTitle: "Detalles del Informe de Madera",
-      reportContent:
-        "Este es un informe detallado de su análisis de madera. Los resultados se basan en la imagen que proporcionó.\nEl análisis incluye la clasificación del tipo de madera, niveles de confianza y cualquier prueba especializada que se haya realizado.\n\nResumen del Informe:\n- Tipo de Madera: {wood_type}\n- Precisión: {accuracy}%\n- Fecha: {date}\n\nPor favor revise los resultados cuidadosamente y háganos saber si tiene alguna pregunta o necesita asistencia adicional.",
-      errorSharing: "Error al compartir informe:",
-    },
-    fr: {
-      appTitle: "Rapports d'Identification du Bois",
-      filterBy: "Filtrer par:",
-      month: "Mois",
-      day: "Jour",
-      year: "Année",
-      woodType: "Type de Bois",
-      allMonths: "Tous les Mois",
-      allDays: "Tous les Jours",
-      allYears: "Toutes les Années",
-      all: "Tous",
-      graphiteWalnut: "Noyer Graphite",
-      mediumCherry: "Cerisier Moyen",
-      desertOak: "Chêne Désert",
-      loadingReports: "Chargement des rapports...",
-      noReportsMatch: "Aucun rapport ne correspond à vos filtres",
-      reportTitle: "Détails du Rapport de Bois",
-      reportContent:
-        "Voici un rapport détaillé de votre analyse de bois. Les résultats sont basés sur l'image que vous avez fournie.\nL'analyse comprend la classification du type de bois, les niveaux de confiance et tous les tests spécialisés qui ont été effectués.\n\nRésumé du Rapport:\n- Type de Bois: {wood_type}\n- Précision: {accuracy}%\n- Date: {date}\n\nVeuillez examiner attentivement les résultats et nous faire savoir si vous avez des questions ou besoin d'une assistance supplémentaire.",
-      errorSharing: "Erreur lors du partage du rapport:",
-    },
-    de: {
-      appTitle: "Holzidentifikationsberichte",
-      filterBy: "Filtern nach:",
-      month: "Monat",
-      day: "Tag",
-      year: "Jahr",
-      woodType: "Holzart",
-      allMonths: "Alle Monate",
-      allDays: "Alle Tage",
-      allYears: "Alle Jahre",
-      all: "Alle",
-      graphiteWalnut: "Graphit-Walnuss",
-      mediumCherry: "Mittlere Kirsche",
-      desertOak: "Wüsteneiche",
-      loadingReports: "Berichte werden geladen...",
-      noReportsMatch: "Keine Berichte entsprechen Ihren Filtern",
-      reportTitle: "Holzbericht Details",
-      reportContent:
-        "Dies ist ein detaillierter Bericht Ihrer Holzanalyse. Die Ergebnisse basieren auf dem von Ihnen bereitgestellten Bild.\nDie Analyse umfasst die Klassifizierung der Holzart, Konfidenzniveaus und alle durchgeführten spezialisierten Tests.\n\nBerichtszusammenfassung:\n- Holzart: {wood_type}\n- Genauigkeit: {accuracy}%\n- Datum: {date}\n\nBitte überprüfen Sie die Ergebnisse sorgfältig und lassen Sie uns wissen, wenn Sie Fragen haben oder weitere Unterstützung benötigen.",
-      errorSharing: "Fehler beim Teilen des Berichts:",
-    },
-    zh: {
-      appTitle: "木材识别报告",
-      filterBy: "筛选条件:",
-      month: "月份",
-      day: "日期",
-      year: "年份",
-      woodType: "木材类型",
-      allMonths: "所有月份",
-      allDays: "所有日期",
-      allYears: "所有年份",
-      all: "全部",
-      graphiteWalnut: "石墨胡桃木",
-      mediumCherry: "中等樱桃木",
-      desertOak: "沙漠橡木",
-      loadingReports: "正在加载报告...",
-      noReportsMatch: "没有匹配您筛选条件的报告",
-      reportTitle: "木材报告详情",
-      reportContent:
-        "这是您的木材分析的详细报告。结果基于您提供的图像。\n分析包括木材类型的分类、置信度以及进行的任何专业测试。\n\n报告摘要:\n- 木材类型: {wood_type}\n- 准确度: {accuracy}%\n- 日期: {date}\n\n请仔细查看结果，如有任何问题或需要进一步帮助，请告知我们。",
-      errorSharing: "分享报告时出错:",
-    },
-  };
 
   // Get translations for this screen
   const st = screenTranslations[settings.language] || screenTranslations.en;
