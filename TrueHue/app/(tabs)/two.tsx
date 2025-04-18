@@ -31,6 +31,10 @@ const formatDate = (isoString: string) => {
     year: "numeric",
     month: "short",
     day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
   });
 };
 
@@ -197,7 +201,7 @@ const Two = () => {
             id: doc.id,
             date: formatDate(data.Date),
             rawDate: data.Date,
-            accuracy: parseFloat(data.Accuracy).toFixed(1),
+            accuracy: data.Accuracy,
             wood_type: woodTypeMap[data.Wood] || data.Wood,
           };
         });
@@ -547,12 +551,14 @@ const Two = () => {
               {filteredReports.map((report) => (
                 <View key={report.id} style={dynamicStyles.reportCard}>
                   <View style={dynamicStyles.reportRow}>
-                    <Text style={dynamicStyles.reportDate}>{report.date}</Text>
+                    <Text style={dynamicStyles.reportDate}>
+                      {report.date}
+                      </Text>
                     <Text style={dynamicStyles.reportWoodType}>
                       {report.wood_type}
                     </Text>
                     <Text style={dynamicStyles.reportAccuracy}>
-                      {report.accuracy}%
+                      {report.accuracy}
                     </Text>
                     <TouchableOpacity
                       style={dynamicStyles.shareButton}

@@ -29,8 +29,8 @@ export default function ImagePickerScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [reportData, setReportData] = useState(null);
-  const [hasGalleryPermission, setHasGalleryPermission] = useState(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState(null);
+  const [hasGalleryPermission, setHasGalleryPermission] = useState<boolean | null>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [showWoodTypeButtons, setShowWoodTypeButtons] = useState(false);
   const [showReport, setShowReport] = useState(false);
 
@@ -420,7 +420,7 @@ export default function ImagePickerScreen() {
 
     try {
       const docRef = await addDoc(collection(db, "Reports"), {
-        Accuracy: reportData.wood_type?.confidence,
+        Accuracy: reportData.specialized_tests.validation.predicted_class,
         Date: new Date().toISOString(),
         Wood: reportData.wood_type?.classification || st.unknown,
       });
