@@ -1,7 +1,15 @@
 {
   "dependencies": {
+    "@expo/metro-runtime": "~4.0.1",
     "@react-native-firebase/app": "^21.12.2",
     "@react-native-firebase/firestore": "^21.12.2",
-    "firebase": "^11.5.0"
+    "firebase": "^11.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-native-web": "^0.20.0",
+    "yarn": "^1.22.22"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
   }
 }
