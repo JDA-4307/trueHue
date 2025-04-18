@@ -16,6 +16,7 @@ import axios from "axios";
 import { BACKEND_URLS } from "../../config";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { useSettings, getThemeColors, scheduleNotification } from "./index";
 import translations from "../../assets/translations/textTranslationsIndex";
 import screenTranslations from "../../assets/translations/textTranslations";
@@ -419,10 +420,18 @@ export default function ImagePickerScreen() {
     }
 
     try {
+      const storage = getStorage();
+      const filename = `reports/${Date.now()}.jpg`;
+      const imageRef = ref(storage, filename);
+      await uploadString(imageRef, imageBase64, 'base64');
+      const downloadURL = await getDownloadURL(imageRef);
+
       const docRef = await addDoc(collection(db, "Reports"), {
         Accuracy: reportData.specialized_tests.validation.predicted_class,
         Date: new Date().toISOString(),
         Wood: reportData.wood_type?.classification || st.unknown,
+        Image: downloadURL,
+
       });
       console.log("Document written with ID: ", docRef.id);
       Alert.alert("Success", st.reportSaved);
