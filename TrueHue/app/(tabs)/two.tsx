@@ -356,12 +356,11 @@ const Two = () => {
       borderColor: colors.border,
       borderRadius: 8,
       overflow: "hidden",
-      backgroundColor: colors.darkMode ? "#222222" : "",
+      backgroundColor: colors.darkMode ? "#222222" : "transparent",
     },
     picker: {
       height: Platform.OS === "ios" ? 120 : 50,
       width: "100%",
-      color: '#000000',
       marginTop: Platform.OS === "ios" ? -60 : 0,
       marginBottom: Platform.OS === "ios" ? 40 : 0,
     },
@@ -432,7 +431,7 @@ const Two = () => {
     reportAccuracy: {
       fontSize: 14,
       fontWeight: "bold",
-      color: reportData.specialized_tests.validation.predicted_class === "valid" ? "green" : "red",  // Adjust condition as needed
+      color: colors.primary,
       flex: 1,
       textAlign: "right",
     },

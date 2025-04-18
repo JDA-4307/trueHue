@@ -297,6 +297,7 @@ export default function SettingsScreen() {
     },
     pickerItem: {
       fontSize: 16,
+      
     },
     settingRow: {
       flexDirection: "row",
