@@ -486,12 +486,12 @@ export default function ImagePickerScreen() {
 
       // Hide the wood type buttons
       setShowWoodTypeButtons(false);
-
+      const currentMode = woodSelectionMode;
       // Process the wood classification based on selection mode
       if (woodSelectionMode === "analyze") {
-        processWoodClassification(woodType);
+        processWoodClassification(woodType, currentMode);
       } else if (woodSelectionMode === "report") {
-        processWoodClassification(woodType);
+        processWoodClassification(woodType, currentMode);
       }
 
       // Reset the selection mode
@@ -627,8 +627,17 @@ export default function ImagePickerScreen() {
         similarityScores: sortedScores,
       };
 
-      setResponseText(resultText); // Just for backward compatibility
-      setAnalysisData(analysisData);
+      // Inside processWoodClassification
+      if (woodSelectionMode === "analyze") {
+        setAnalysisData(resultText);
+        // Don't set reportData
+      } else if (woodSelectionMode === "report") {
+        setReportData(resultText);
+        setAnalysisData(analysisData); // You might still want this for both modes
+      }
+
+      //setResponseText(resultText); // Just for backward compatibility
+      //setAnalysisData(analysisData);
 
       logInfo(
         COMPONENT_NAME,
@@ -751,7 +760,7 @@ export default function ImagePickerScreen() {
   };
 
   // Shared function to process wood classification - used by both analyze and generate report
-  const processWoodClassification = async (woodType) => {
+  const processWoodClassification = async (woodType, currentMode) => {
     try {
       logInfo(
         COMPONENT_NAME,
@@ -906,8 +915,15 @@ export default function ImagePickerScreen() {
         "processWoodClassification",
         "Setting state with analysis results"
       );
-      setReportData(formattedData);
-      setAnalysisData(analysisData);
+
+      // Near the end, modify this part:
+      if (currentMode === "analyze") {
+        setAnalysisData(analysisData);
+        setReportData(null); // Explicitly clear report data
+      } else if (currentMode === "report") {
+        setReportData(formattedData);
+        setAnalysisData(analysisData); // Keep this for both modes if needed
+      }
 
       const mainCategory =
         response.data.main_category === "in-range"
