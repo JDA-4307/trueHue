@@ -7,6 +7,8 @@ import {
   Share,
   TouchableOpacity,
   SafeAreaView,
+  Modal,
+  Image,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { useEffect, useState } from "react";
@@ -17,12 +19,14 @@ import { useSettings, getThemeColors } from "./index";
 import translations from "../../assets/translations/textTranslationsIndex";
 import screenTranslations from "../../assets/translations/textTranslationsTwo";
 
+
 interface Report {
   id: string;
   accuracy: string;
   date: string;
   wood_type: string;
   rawDate: string;
+  image: string | null;
 }
 
 const formatDate = (isoString: string) => {
@@ -31,6 +35,10 @@ const formatDate = (isoString: string) => {
     year: "numeric",
     month: "short",
     day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
   });
 };
 
@@ -42,6 +50,8 @@ const Two = () => {
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedWoodType, setSelectedWoodType] = useState<string>("All");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string>("");
 
   // Get settings from context
   const { settings } = useSettings();
@@ -197,8 +207,9 @@ const Two = () => {
             id: doc.id,
             date: formatDate(data.Date),
             rawDate: data.Date,
-            accuracy: parseFloat(data.Accuracy).toFixed(1),
+            accuracy: data.Accuracy,
             wood_type: woodTypeMap[data.Wood] || data.Wood,
+            image: data.Image || null,
           };
         });
 
@@ -283,6 +294,7 @@ const Two = () => {
     st.mediumCherry,
     st.desertOak,
   ]);
+  // Handle modal visibility
 
   // Create dynamic styles based on theme
   const dynamicStyles = StyleSheet.create({
@@ -547,12 +559,20 @@ const Two = () => {
               {filteredReports.map((report) => (
                 <View key={report.id} style={dynamicStyles.reportCard}>
                   <View style={dynamicStyles.reportRow}>
-                    <Text style={dynamicStyles.reportDate}>{report.date}</Text>
-                    <Text style={dynamicStyles.reportWoodType}>
-                      {report.wood_type}
-                    </Text>
+                    <Text style={dynamicStyles.reportDate}>
+                      {report.date}
+                      </Text>
+                      <TouchableOpacity
+                            onPress={() => {
+                            setSelectedImage(report.image); // `image` should be the downloadURL field
+                            setModalVisible(true);
+                          }}>
+                            <Text style={dynamicStyles.reportWoodType}>
+                                  {report.wood_type}
+                            </Text>
+                      </TouchableOpacity>
                     <Text style={dynamicStyles.reportAccuracy}>
-                      {report.accuracy}%
+                      {report.accuracy}
                     </Text>
                     <TouchableOpacity
                       style={dynamicStyles.shareButton}
@@ -567,6 +587,44 @@ const Two = () => {
                   </View>
                 </View>
               ))}
+              <Modal
+  visible={modalVisible}
+  transparent={true}
+  animationType="fade"
+  onRequestClose={() => setModalVisible(false)}
+>
+  <View style={{
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  }}>
+    <TouchableOpacity
+      onPress={() => setModalVisible(false)}
+      style={{
+        position: 'absolute',
+        top: 40,
+        right: 20,
+        zIndex: 1,
+      }}
+    >
+      <Ionicons name="close" size={32} color="#fff" />
+    </TouchableOpacity>
+
+          <Image
+            source={{ uri: selectedImage }}
+            style={{
+            width: 300,
+            height: 300,
+            borderRadius: 10,
+            borderWidth: 2,
+            borderColor: '#fff',
+          }}
+          resizeMode="contain"
+          />
+        </View>
+      </Modal>
+
             </View>
           )}
         </View>
@@ -575,4 +633,7 @@ const Two = () => {
   );
 };
 
+
+
 export default Two;
+

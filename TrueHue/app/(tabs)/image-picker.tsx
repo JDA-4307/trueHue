@@ -18,6 +18,12 @@ import axios from "axios";
 import { BACKEND_URLS } from "../../config";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import {
+  getStorage,
+  ref,
+  uploadString,
+  getDownloadURL,
+} from "firebase/storage";
 import { useSettings, getThemeColors, scheduleNotification } from "./index";
 import translations from "../../assets/translations/textTranslationsIndex";
 import screenTranslations from "../../assets/translations/textTranslations";
@@ -58,8 +64,12 @@ export default function ImagePickerScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [reportData, setReportData] = useState(null);
-  const [hasGalleryPermission, setHasGalleryPermission] = useState(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState(null);
+  const [hasGalleryPermission, setHasGalleryPermission] = useState<
+    boolean | null
+  >(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<
+    boolean | null
+  >(null);
   const [showWoodTypeButtons, setShowWoodTypeButtons] = useState(false);
   const [woodSelectionMode, setWoodSelectionMode] = useState(null); // 'analyze' or 'report'
   const [showReport, setShowReport] = useState(false);
@@ -1032,60 +1042,29 @@ export default function ImagePickerScreen() {
   };
 
   const saveReport = async () => {
+    if (!reportData) {
+      Alert.alert(st.noImage, st.selectFirst);
+      return;
+    }
+
     try {
-      logInfo(
-        COMPONENT_NAME,
-        "saveReport",
-        "Attempting to save report to Firestore"
-      );
+      const storage = getStorage();
+      const filename = `reports/${Date.now()}.jpg`;
+      const imageRef = ref(storage, filename);
+      await uploadString(imageRef, imageBase64, "base64");
+      const downloadURL = await getDownloaxdURL(imageRef);
 
-      if (!reportData) {
-        logInfo(COMPONENT_NAME, "saveReport", "No report data available");
-        Alert.alert(
-          st.noImage || "No Report",
-          st.selectFirst || "Please analyze an image first"
-        );
-        return;
-      }
-
-      // Validate Firebase setup
-      if (!db || !collection) {
-        throw new Error("Firebase database is not properly configured");
-      }
-
-      // Create the document data
-      const reportDataToSave = {
-        WoodType:
-          reportData.wood_type?.classification || st.unknown || "Unknown",
-        Category: reportData.main_result?.predicted || st.unknown || "Unknown",
-        Result: reportData.main_result?.category || st.unknown || "Unknown",
+      const docRef = await addDoc(collection(db, "Reports"), {
+        Accuracy: reportData.main_result?.category || 0.0,
         Date: new Date().toISOString(),
-        Platform: Platform.OS,
-        AppVersion: "1.0.0", // You can use a constant or dynamic version
-      };
-
-      logInfo(
-        COMPONENT_NAME,
-        "saveReport",
-        `Saving report data: ${JSON.stringify(reportDataToSave)}`
-      );
-
-      // Add to Firestore
-      const docRef = await addDoc(collection(db, "Reports"), reportDataToSave);
-
-      logInfo(
-        COMPONENT_NAME,
-        "saveReport",
-        `Document written with ID: ${docRef.id}`
-      );
-      Alert.alert("Success", st.reportSaved || "Report saved successfully");
-    } catch (error) {
-      const errorMsg = logError(COMPONENT_NAME, "saveReport", error);
-      setLastError(errorMsg);
-      Alert.alert(
-        "Error",
-        st.errorSaving || "Error saving report: " + error.message
-      );
+        Wood: reportData.wood_type?.classification || st.unknown,
+        Image: downloadURL,
+      });
+      console.log("Document written with ID: ", docRef.id);
+      Alert.alert("Success", st.reportSaved);
+    } catch (e) {
+      console.error("Error adding document: ", e);
+      Alert.alert("Error", st.errorSaving);
     }
   };
 
