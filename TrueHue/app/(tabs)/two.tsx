@@ -361,7 +361,6 @@ const Two = () => {
     picker: {
       height: Platform.OS === "ios" ? 120 : 50,
       width: "100%",
-      color: colors.text,
       marginTop: Platform.OS === "ios" ? -60 : 0,
       marginBottom: Platform.OS === "ios" ? 40 : 0,
     },
@@ -409,7 +408,7 @@ const Two = () => {
       marginBottom: 12,
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
+      shadowOpacity: 0.2,
       shadowRadius: 8,
       elevation: 2,
     },
@@ -419,18 +418,18 @@ const Two = () => {
       alignItems: "center",
     },
     reportDate: {
-      fontSize: 15,
+      fontSize: 14,
       color: colors.text,
       flex: 2,
     },
     reportWoodType: {
-      fontSize: 15,
+      fontSize: 14,
       color: colors.text,
       flex: 2,
       textAlign: "center",
     },
     reportAccuracy: {
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: "bold",
       color: colors.primary,
       flex: 1,

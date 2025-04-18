@@ -291,7 +291,7 @@ export default function SettingsScreen() {
     picker: {
       height: Platform.OS === "ios" ? 150 : 50,
       width: "100%",
-      color: colors.text,
+      color: "#000000",
       marginTop: Platform.OS === "ios" ? -60 : 0,
       marginBottom: Platform.OS === "ios" ? 60 : 0,
     },
