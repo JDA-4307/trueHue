@@ -25,7 +25,7 @@ import {
   getDownloadURL,
   uploadBytes,
 } from "firebase/storage";
-import { useSettings, getThemeColors, scheduleNotification } from "./index";
+import { useSettings, getThemeColors, scheduleNotification } from "./settings";
 import translations from "../../assets/translations/textTranslationsIndex";
 import screenTranslations from "../../assets/translations/textTranslations";
 
@@ -1845,8 +1845,7 @@ export default function ImagePickerScreen() {
                     </View>
 
                     <Text style={dynamicStyles.positionLabel}>
-                      {st.analysis}: {getPositionLabel(positionScore)} (
-                      {positionScore.toFixed(2)})
+                      {st.analysis}: {getPositionLabel(positionScore)}
                     </Text>
                     {/* Confidence label removed */}
                   </View>

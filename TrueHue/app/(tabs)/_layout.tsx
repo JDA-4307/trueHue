@@ -69,7 +69,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="index"
+        name="settings"
         options={{
           title: "Settings",
           headerShown: false,
@@ -94,6 +94,16 @@ export default function TabLayout() {
               </Pressable>
             </Link>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          // completely remove the tab button
+
+          // hide the header if you want
+          headerShown: false,
+          tabBarItemStyle: { display: "none" },
         }}
       />
     </Tabs>

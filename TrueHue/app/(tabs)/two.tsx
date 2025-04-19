@@ -15,7 +15,7 @@ import { useEffect, useState, useCallback } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { Ionicons } from "@expo/vector-icons";
-import { useSettings, getThemeColors } from "./index";
+import { useSettings, getThemeColors } from "./settings";
 import translations from "../../assets/translations/textTranslationsIndex";
 import screenTranslations from "../../assets/translations/textTranslationsTwo";
 import { useFocusEffect } from "@react-navigation/native";
