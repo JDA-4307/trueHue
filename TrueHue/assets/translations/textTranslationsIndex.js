@@ -1,5 +1,5 @@
 // Export translations for all supported languages
-export const translations = {
+const translations = {
   en: {
     settings: "Settings",
     language: "Language",
