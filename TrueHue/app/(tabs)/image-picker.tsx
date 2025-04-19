@@ -777,8 +777,13 @@ export default function ImagePickerScreen() {
         "processWoodClassification",
         `Processing classification for wood type: ${woodType}`
       );
-      setIsLoading(true);
-      setIsGeneratingReport(true);
+      if (currentMode == "analyze") {
+        setIsLoading(true);
+        setIsGeneratingReport(false);
+      } else if (currentMode == "report") {
+        setIsLoading(false);
+        setIsGeneratingReport(true);
+      }
 
       // Validate BACKEND_URLS
       if (!BACKEND_URLS || !BACKEND_URLS.classify_wood) {
@@ -885,7 +890,7 @@ export default function ImagePickerScreen() {
         "processWoodClassification",
         `Setting position score: ${mappedScore}`
       );
-      setPositionScore(mappedScore);
+      //setPositionScore(mappedScore);
 
       // Format and sort similarity scores from highest to lowest
       let sortedScores = [];
@@ -927,12 +932,15 @@ export default function ImagePickerScreen() {
       );
 
       // Near the end, modify this part:
+
       if (currentMode === "analyze") {
-        setAnalysisData(analysisData);
+        setPositionScore(mappedScore); // Add this line to set position score for analysis mode
+        setAnalysisData(null);
         setReportData(null); // Explicitly clear report data
       } else if (currentMode === "report") {
+        setPositionScore(null); // Add this line to set position score for analysis mode
         setReportData(formattedData);
-        setAnalysisData(analysisData); // Keep this for both modes if needed
+        setAnalysisData(null); // Keep this for both modes if needed
       }
 
       const mainCategory =
@@ -1052,7 +1060,7 @@ export default function ImagePickerScreen() {
       const filename = `reports/${Date.now()}.jpg`;
       const imageRef = ref(storage, filename);
       await uploadString(imageRef, imageBase64, "base64");
-      const downloadURL = await getDownloaxdURL(imageRef);
+      const downloadURL = await getDownloadURL(imageRef);
 
       const docRef = await addDoc(collection(db, "Reports"), {
         Accuracy: reportData.main_result?.category || 0.0,

@@ -20,10 +20,9 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="image-picker"
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
         headerShown: useClientOnlyValue(false, true),
       }}
     >
@@ -31,11 +30,7 @@ export default function TabLayout() {
         name="image-picker"
         options={{
           title: "Image Analyzer",
-          headerShown: false, // This will hide the header bar
-          //headerTitleAlign: "center",
-          //headerStyle: {
-          //  alignItems: "center",
-          //},
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Image
               source={require("../../assets/images/photo_icon.png")}
@@ -49,11 +44,7 @@ export default function TabLayout() {
         name="rgb"
         options={{
           title: "Compare",
-          headerShown: false, // This will hide the header bar
-          //headerTitleAlign: "center",
-          //headerStyle: {
-          //  alignItems: "center",
-          //},
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Image
               source={require("../../assets/images/photo_icon.png")}
@@ -67,7 +58,7 @@ export default function TabLayout() {
         name="two"
         options={{
           title: "Reports",
-          headerShown: false, // This will hide the header bar
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Image
               source={require("../../assets/images/report_icon.png")}
@@ -77,12 +68,11 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="index"
         options={{
           title: "Settings",
-          headerShown: false, // This will hide the header bar
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Image
               source={require("../../assets/images/settingsChat.png")}
