@@ -11,14 +11,14 @@ import {
   Image,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { useSettings, getThemeColors } from "./index";
 import translations from "../../assets/translations/textTranslationsIndex";
 import screenTranslations from "../../assets/translations/textTranslationsTwo";
-
+import { useFocusEffect } from "@react-navigation/native";
 
 interface Report {
   id: string;
@@ -52,6 +52,7 @@ const Two = () => {
   const [selectedWoodType, setSelectedWoodType] = useState<string>("All");
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>("");
+  const [refreshKey, setRefreshKey] = useState(0); // Add a refresh key to force re-renders
 
   // Get settings from context
   const { settings } = useSettings();
@@ -62,10 +63,63 @@ const Two = () => {
   // Get theme colors
   const colors = getThemeColors(settings.darkMode, settings.highContrast);
 
-  // Create translations for this screen
-
   // Get translations for this screen
   const st = screenTranslations[settings.language] || screenTranslations.en;
+
+  // Function to fetch reports from Firebase
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      console.log("Fetching reports from Firebase...");
+      const querySnapshot = await getDocs(collection(db, "Reports"));
+      const reportsData = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        const woodTypeMap: Record<string, string> = {
+          graphite_walnut: st.graphiteWalnut,
+          medium_cherry: st.mediumCherry,
+          desert_oak: st.desertOak,
+        };
+
+        return {
+          id: doc.id,
+          date: formatDate(data.Date),
+          rawDate: data.Date,
+          accuracy: data.Accuracy,
+          wood_type: woodTypeMap[data.Wood] || data.Wood,
+          image: data.Image || null,
+        };
+      });
+
+      const sortedReports = reportsData.sort(
+        (a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()
+      );
+
+      setReports(sortedReports);
+      setFilteredReports(sortedReports);
+      console.log(`Fetched ${sortedReports.length} reports`);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Use this effect to fetch reports on initial load and when language changes
+  useEffect(() => {
+    fetchReports();
+  }, [settings.language, refreshKey]); // Add refreshKey to dependencies
+
+  // Use this effect to refresh data whenever the screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log("Screen is focused, refreshing reports...");
+      fetchReports();
+      return () => {
+        // This runs when the screen is unfocused
+        console.log("Screen is unfocused");
+      };
+    }, [])
+  );
 
   const generateMonths = () => {
     const translations = {
@@ -191,44 +245,10 @@ const Two = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "Reports"));
-        const reportsData = querySnapshot.docs.map((doc) => {
-          const data = doc.data();
-          const woodTypeMap: Record<string, string> = {
-            graphite_walnut: st.graphiteWalnut,
-            medium_cherry: st.mediumCherry,
-            desert_oak: st.desertOak,
-          };
-
-          return {
-            id: doc.id,
-            date: formatDate(data.Date),
-            rawDate: data.Date,
-            accuracy: data.Accuracy,
-            wood_type: woodTypeMap[data.Wood] || data.Wood,
-            image: data.Image || null,
-          };
-        });
-
-        const sortedReports = reportsData.sort(
-          (a, b) =>
-            new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()
-        );
-
-        setReports(sortedReports);
-        setFilteredReports(sortedReports);
-      } catch (error) {
-        console.error("Error fetching reports:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReports();
-  }, [settings.language]); // Refetch when language changes to update translations
+  // Manual refresh function for pull-to-refresh or refresh button
+  const refreshReports = () => {
+    setRefreshKey((prevKey) => prevKey + 1); // Increment the refresh key to trigger a re-render
+  };
 
   useEffect(() => {
     let filtered = reports;
@@ -294,7 +314,6 @@ const Two = () => {
     st.mediumCherry,
     st.desertOak,
   ]);
-  // Handle modal visibility
 
   // Create dynamic styles based on theme
   const dynamicStyles = StyleSheet.create({
@@ -438,12 +457,26 @@ const Two = () => {
     shareButton: {
       padding: 8,
     },
+    refreshButton: {
+      position: "absolute",
+      right: 24,
+      top: 12,
+      padding: 8,
+      zIndex: 1,
+    },
   });
 
   return (
     <SafeAreaView style={dynamicStyles.safeArea}>
       <ScrollView contentContainerStyle={dynamicStyles.scrollContainer}>
         <View style={dynamicStyles.container}>
+          <TouchableOpacity
+            style={dynamicStyles.refreshButton}
+            onPress={refreshReports}
+          >
+            <Ionicons name="refresh" size={24} color={colors.primary} />
+          </TouchableOpacity>
+
           <Text style={dynamicStyles.appTitle}>{st.appTitle}</Text>
 
           <View style={dynamicStyles.filterCard}>
@@ -558,18 +591,17 @@ const Two = () => {
               {filteredReports.map((report) => (
                 <View key={report.id} style={dynamicStyles.reportCard}>
                   <View style={dynamicStyles.reportRow}>
-                    <Text style={dynamicStyles.reportDate}>
-                      {report.date}
+                    <Text style={dynamicStyles.reportDate}>{report.date}</Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedImage(report.image); // `image` should be the downloadURL field
+                        setModalVisible(true);
+                      }}
+                    >
+                      <Text style={dynamicStyles.reportWoodType}>
+                        {report.wood_type}
                       </Text>
-                      <TouchableOpacity
-                            onPress={() => {
-                            setSelectedImage(report.image); // `image` should be the downloadURL field
-                            setModalVisible(true);
-                          }}>
-                            <Text style={dynamicStyles.reportWoodType}>
-                                  {report.wood_type}
-                            </Text>
-                      </TouchableOpacity>
+                    </TouchableOpacity>
                     <Text style={dynamicStyles.reportAccuracy}>
                       {report.accuracy}
                     </Text>
@@ -587,43 +619,44 @@ const Two = () => {
                 </View>
               ))}
               <Modal
-  visible={modalVisible}
-  transparent={true}
-  animationType="fade"
-  onRequestClose={() => setModalVisible(false)}
->
-  <View style={{
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  }}>
-    <TouchableOpacity
-      onPress={() => setModalVisible(false)}
-      style={{
-        position: 'absolute',
-        top: 40,
-        right: 20,
-        zIndex: 1,
-      }}
-    >
-      <Ionicons name="close" size={32} color="#fff" />
-    </TouchableOpacity>
+                visible={modalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setModalVisible(false)}
+              >
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: "rgba(0,0,0,0.7)",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={() => setModalVisible(false)}
+                    style={{
+                      position: "absolute",
+                      top: 40,
+                      right: 20,
+                      zIndex: 1,
+                    }}
+                  >
+                    <Ionicons name="close" size={32} color="#fff" />
+                  </TouchableOpacity>
 
-          <Image
-            source={{ uri: selectedImage }}
-            style={{
-            width: 300,
-            height: 300,
-            borderRadius: 10,
-            borderWidth: 2,
-            borderColor: '#fff',
-          }}
-          resizeMode="contain"
-          />
-        </View>
-      </Modal>
-
+                  <Image
+                    source={{ uri: selectedImage }}
+                    style={{
+                      width: 300,
+                      height: 300,
+                      borderRadius: 10,
+                      borderWidth: 2,
+                      borderColor: "#fff",
+                    }}
+                    resizeMode="contain"
+                  />
+                </View>
+              </Modal>
             </View>
           )}
         </View>
@@ -632,7 +665,4 @@ const Two = () => {
   );
 };
 
-
-
 export default Two;
-
