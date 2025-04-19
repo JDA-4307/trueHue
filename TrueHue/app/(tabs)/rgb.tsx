@@ -13,7 +13,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { BACKEND_URLS } from "../../config"; // Import from config
-import { useSettings, getThemeColors, scheduleNotification } from "./index";
+import { useSettings, getThemeColors, scheduleNotification } from "./settings";
 
 import translations from "../../assets/translations/textTranslationsIndex";
 import screenTranslations from "../../assets/translations/textTranslationsRgb";

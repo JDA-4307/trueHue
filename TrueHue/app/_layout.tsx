@@ -11,7 +11,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/components/useColorScheme";
-import { SettingsProvider } from "./(tabs)/index"; // Import the SettingsProvider
+import { SettingsProvider } from "./(tabs)/settings"; // Import the SettingsProvider
 
 export {
   // Catch any errors thrown by the Layout component.
