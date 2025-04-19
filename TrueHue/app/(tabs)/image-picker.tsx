@@ -353,7 +353,7 @@ export default function ImagePickerScreen() {
     try {
       if (score < -0.5)
         return settings.language === "en"
-          ? "Very Dark"
+          ? "Out of Range Too Dark"
           : settings.language === "es"
           ? "Muy Oscuro"
           : settings.language === "fr"
@@ -364,7 +364,7 @@ export default function ImagePickerScreen() {
 
       if (score < -0.1)
         return settings.language === "en"
-          ? "Dark"
+          ? "In Range Dark"
           : settings.language === "es"
           ? "Oscuro"
           : settings.language === "fr"
@@ -375,7 +375,7 @@ export default function ImagePickerScreen() {
 
       if (score < 0.1)
         return settings.language === "en"
-          ? "Well In Range"
+          ? "In Range"
           : settings.language === "es"
           ? "Bien en Rango"
           : settings.language === "fr"
@@ -386,7 +386,7 @@ export default function ImagePickerScreen() {
 
       if (score < 0.5)
         return settings.language === "en"
-          ? "Light"
+          ? "In Range Light"
           : settings.language === "es"
           ? "Claro"
           : settings.language === "fr"
@@ -396,7 +396,7 @@ export default function ImagePickerScreen() {
           : "浅色";
 
       return settings.language === "en"
-        ? "Very Light"
+        ? "Out of Range Too Light"
         : settings.language === "es"
         ? "Muy Claro"
         : settings.language === "fr"
@@ -935,12 +935,12 @@ export default function ImagePickerScreen() {
 
       if (currentMode === "analyze") {
         setPositionScore(mappedScore); // Add this line to set position score for analysis mode
-        setAnalysisData(null);
+        setAnalysisData(analysisData);
         setReportData(null); // Explicitly clear report data
       } else if (currentMode === "report") {
         setPositionScore(null); // Add this line to set position score for analysis mode
-        setReportData(formattedData);
         setAnalysisData(null); // Keep this for both modes if needed
+        setReportData(formattedData);
       }
 
       const mainCategory =
@@ -1049,28 +1049,68 @@ export default function ImagePickerScreen() {
     }
   };
 
-  const saveReport = async () => {
-    if (!reportData) {
+  // Modified saveReport function to handle both report and analysis data
+  const saveReport = async (isAnalysis = false) => {
+    // Check if we have the appropriate data to save
+    if (!reportData && !isAnalysis) {
+      Alert.alert(st.noImage, st.selectFirst);
+      return;
+    }
+
+    if (!analysisData && isAnalysis) {
       Alert.alert(st.noImage, st.selectFirst);
       return;
     }
 
     try {
+      logInfo(
+        COMPONENT_NAME,
+        "saveReport",
+        `Saving ${isAnalysis ? "analysis" : "report"} data`
+      );
+
+      // Upload image to Firebase Storage
       const storage = getStorage();
       const filename = `reports/${Date.now()}.jpg`;
       const imageRef = ref(storage, filename);
       await uploadString(imageRef, imageBase64, "base64");
       const downloadURL = await getDownloadURL(imageRef);
 
-      const docRef = await addDoc(collection(db, "Reports"), {
-        Accuracy: reportData.main_result?.category || 0.0,
-        Date: new Date().toISOString(),
-        Wood: reportData.wood_type?.classification || st.unknown,
-        Image: downloadURL,
-      });
-      console.log("Document written with ID: ", docRef.id);
+      // Create document data based on the type of data we're saving
+      let docData;
+
+      if (isAnalysis) {
+        // Format for analysisData
+        docData = {
+          Accuracy: analysisData.isInRange ? "In Range" : "Out of Range",
+          Date: new Date().toISOString(),
+          Wood: analysisData.woodType || st.unknown,
+          Category: formatCategory(analysisData.predictedCategory) || "Unknown",
+          Image: downloadURL,
+          Type: "analysis",
+        };
+      } else {
+        // Format for reportData (original implementation)
+        docData = {
+          Accuracy: reportData.main_result?.category || 0.0,
+          Date: new Date().toISOString(),
+          Wood: reportData.wood_type?.classification || st.unknown,
+          Image: downloadURL,
+          Type: "report",
+        };
+      }
+
+      // Add document to Firestore
+      const docRef = await addDoc(collection(db, "Reports"), docData);
+      logInfo(
+        COMPONENT_NAME,
+        "saveReport",
+        `Document written with ID: ${docRef.id}`
+      );
       Alert.alert("Success", st.reportSaved);
     } catch (e) {
+      const errorMsg = logError(COMPONENT_NAME, "saveReport", e);
+      setLastError(errorMsg);
       console.error("Error adding document: ", e);
       Alert.alert("Error", st.errorSaving);
     }
@@ -1677,7 +1717,7 @@ export default function ImagePickerScreen() {
                   >
                     <Text style={dynamicStyles.buttonText}>{st.analyze}</Text>
                   </TouchableOpacity>
-
+                  {/*
                   <TouchableOpacity
                     style={dynamicStyles.actionButton}
                     onPress={generateFullReport}
@@ -1690,7 +1730,7 @@ export default function ImagePickerScreen() {
                       {st.generateReport}
                     </Text>
                   </TouchableOpacity>
-
+                  */}
                   <TouchableOpacity
                     style={dynamicStyles.resetButton}
                     onPress={reuploadImage}
@@ -1821,6 +1861,21 @@ export default function ImagePickerScreen() {
                       </View>
                     </View>
                   ))}
+
+                  {/* Save button for Analysis Data Card */}
+                  <View
+                    style={[dynamicStyles.reportActions, { marginTop: 20 }]}
+                  >
+                    <TouchableOpacity
+                      style={dynamicStyles.saveButton}
+                      onPress={() => saveReport(true)}
+                      testID="save-analysis-button"
+                    >
+                      <Text style={dynamicStyles.buttonText}>
+                        {st.saveReport || "Save Report"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
 
@@ -1907,7 +1962,7 @@ export default function ImagePickerScreen() {
                   <View style={dynamicStyles.reportActions}>
                     <TouchableOpacity
                       style={dynamicStyles.saveButton}
-                      onPress={saveReport}
+                      onPress={() => saveReport(false)}
                       testID="save-report-button"
                     >
                       <Text style={dynamicStyles.buttonText}>
