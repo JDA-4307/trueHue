@@ -23,10 +23,13 @@ import {
   ref,
   uploadString,
   getDownloadURL,
+  uploadBytes,
 } from "firebase/storage";
 import { useSettings, getThemeColors, scheduleNotification } from "./index";
 import translations from "../../assets/translations/textTranslationsIndex";
 import screenTranslations from "../../assets/translations/textTranslations";
+
+// First, make sure to import uploadBytes at the top with your other imports
 
 // Setup global error handling and logging
 const logError = (component, functionName, error) => {
@@ -44,6 +47,16 @@ const logInfo = (component, functionName, message) => {
   const logMessage = `INFO: ${component}.${functionName}: ${message}`;
   console.log(logMessage);
   return logMessage;
+};
+
+// Helper function to transform probability using power function
+const transformProbability = (probability, power = 0.3) => {
+  // Ensure probability is between 0 and 1
+  const clampedProb = Math.max(0, Math.min(1, probability / 100));
+  // Apply power transformation
+  const transformed = Math.pow(clampedProb, power);
+  // Convert back to percentage
+  return transformed * 100;
 };
 
 // Ignore specific warnings that might be irrelevant
@@ -139,6 +152,7 @@ export default function ImagePickerScreen() {
       analysisResults: "Analysis Results",
       category: "Category",
       categorySimilarity: "Category Similarity",
+      validationProbability: "Validation Probability",
       inRangeDark: "Dark (In Range)",
       inRangeLight: "Light (In Range)",
       inRangeStandard: "Standard (In Range)",
@@ -903,6 +917,32 @@ export default function ImagePickerScreen() {
           .sort((a, b) => b.score - a.score); // Sort highest to lowest
       }
 
+      // Calculate validation probability - sum of all categories that match the main classification
+      let validationProbability = 0;
+      const isInRange = response.data.main_category === "in-range";
+
+      for (const [category, score] of Object.entries(normalizedScores)) {
+        if (
+          (isInRange && category.startsWith("in-range")) ||
+          (!isInRange && category.startsWith("out-of-range"))
+        ) {
+          validationProbability += score;
+        }
+      }
+
+      // Apply transformation to boost the confidence value
+      const transformedValidationProbability = transformProbability(
+        validationProbability
+      );
+
+      logInfo(
+        COMPONENT_NAME,
+        "processWoodClassification",
+        `Original validation probability: ${validationProbability.toFixed(
+          2
+        )}%, Transformed: ${transformedValidationProbability.toFixed(2)}%`
+      );
+
       // Format data for display
       const formattedData = {
         wood_type: {
@@ -923,6 +963,8 @@ export default function ImagePickerScreen() {
         mainCategory: response.data.main_category,
         isInRange: response.data.main_category === "in-range",
         similarityScores: sortedScores,
+        validationProbability: validationProbability,
+        transformedValidationProbability: transformedValidationProbability,
       };
 
       logInfo(
@@ -1049,7 +1091,7 @@ export default function ImagePickerScreen() {
     }
   };
 
-  // Modified saveReport function to handle both report and analysis data
+  // Then modify the saveReport function
   const saveReport = async (isAnalysis = false) => {
     // Check if we have the appropriate data to save
     if (!reportData && !isAnalysis) {
@@ -1069,12 +1111,29 @@ export default function ImagePickerScreen() {
         `Saving ${isAnalysis ? "analysis" : "report"} data`
       );
 
-      // Upload image to Firebase Storage
-      const storage = getStorage();
-      const filename = `reports/${Date.now()}.jpg`;
-      const imageRef = ref(storage, filename);
-      await uploadString(imageRef, imageBase64, "base64");
-      const downloadURL = await getDownloadURL(imageRef);
+      let downloadURL = null;
+
+      // Only attempt to upload the image if we have a valid imageUri
+      if (imageUri) {
+        // Upload image to Firebase Storage
+        const storage = getStorage();
+        const filename = `reports/${Date.now()}.jpg`;
+        const imageRef = ref(storage, filename);
+
+        // Use different approach depending on platform
+        if (Platform.OS === "ios") {
+          // For iOS, use the fetch blob approach
+          const response = await fetch(imageUri);
+          const blob = await response.blob();
+          await uploadBytes(imageRef, blob);
+        } else {
+          // For Android and other platforms, the original approach should work
+          await uploadString(imageRef, imageBase64, "base64");
+        }
+
+        // Get the download URL of the uploaded image
+        downloadURL = await getDownloadURL(imageRef);
+      }
 
       // Create document data based on the type of data we're saving
       let docData;
@@ -1082,10 +1141,14 @@ export default function ImagePickerScreen() {
       if (isAnalysis) {
         // Format for analysisData
         docData = {
-          Accuracy: analysisData.isInRange ? "In Range" : "Out of Range",
+          Accuracy: analysisData.isInRange ? "in-range" : "out-of-range",
           Date: new Date().toISOString(),
           Wood: analysisData.woodType || st.unknown,
-          Category: formatCategory(analysisData.predictedCategory) || "Unknown",
+          Category: analysisData.predictedCategory || "Unknown",
+          ValidationProbability:
+            analysisData.transformedValidationProbability || 0, // Use transformed value
+          OriginalValidationProbability:
+            analysisData.validationProbability || 0, // Store original too
           Image: downloadURL,
           Type: "analysis",
         };
@@ -1392,6 +1455,9 @@ export default function ImagePickerScreen() {
     categoryText: {
       fontSize: 16,
       color: colors.secondaryText,
+      marginBottom: 16,
+    },
+    validationContainer: {
       marginBottom: 16,
     },
     divider: {
@@ -1824,6 +1890,41 @@ export default function ImagePickerScreen() {
                     {st.category || "Category"}:{" "}
                     {analysisData.predictedCategory}
                   </Text>
+
+                  {/* Validation Probability - Now with transformed value */}
+                  <View style={dynamicStyles.validationContainer}>
+                    <Text style={dynamicStyles.scoresSectionTitle}>
+                      {st.validationProbability || "Validation Probability"}
+                    </Text>
+                    <View style={dynamicStyles.scoreRow}>
+                      <View style={dynamicStyles.scoreNameContainer}>
+                        <Text style={dynamicStyles.scoreName}>
+                          {analysisData.isInRange
+                            ? st.inRange || "In Range"
+                            : st.outOfRange || "Out of Range"}
+                        </Text>
+                      </View>
+                      <View style={dynamicStyles.scoreBarContainer}>
+                        <View style={dynamicStyles.scoreBarBackground}>
+                          <View
+                            style={[
+                              dynamicStyles.scoreBarFill,
+                              {
+                                width: `${analysisData.transformedValidationProbability}%`,
+                                backgroundColor: colors.primary,
+                              },
+                            ]}
+                          />
+                        </View>
+                        <Text style={dynamicStyles.scoreValue}>
+                          {analysisData.transformedValidationProbability.toFixed(
+                            1
+                          )}
+                          %
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
 
                   <View style={dynamicStyles.divider} />
 
