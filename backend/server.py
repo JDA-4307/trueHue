@@ -297,11 +297,17 @@ def classify_image(image_profile, reference_profiles):
         # Convert to similarity score (higher = more similar)
         similarity_scores[category] = 1 / (1 + profile_distance)
     
-    # Find the most similar category
+    # Convert to pandas Series
     similarity_series = pd.Series(similarity_scores)
-    predicted_category = similarity_series.idxmax()
     
-    return predicted_category, similarity_series
+    # Normalize the scores to make them sum to 1 (convert to probabilities)
+    total_score = similarity_series.sum()
+    normalized_series = similarity_series / total_score
+    
+    # Find the most similar category (using the normalized scores)
+    predicted_category = normalized_series.idxmax()
+    
+    return predicted_category, normalized_series
 
 def get_main_category(category):
     """
@@ -561,7 +567,7 @@ def predict_binary_classification(interpreter, preprocessed_image, threshold=0.5
         # Calculate confidence (0-100%)
         # This simply uses how far the prediction is from 0.5 (maximum uncertainty)
         # 0.5 = 50% confidence, 0.0 or 1.0 = 100% confidence
-        raw_confidence = abs(prediction_value - 0.5) * 2 * 100
+        raw_confidence = abs(prediction_value - 0.5) * 10 * 100 + 50
         
         return {
             "is_in_range": is_in_range,
@@ -635,6 +641,9 @@ def validate_medium_cherry():
         
         image = data.get("image")
         mime_type = data.get("mimeType")
+        # Check if threshold is provided in the request
+        if (data.get("threshold") is not None):
+            THRESHOLD = data.get("threshold")
         color_space = "lab"  # Always use LAB color space
 
         if not image or not mime_type:
@@ -650,7 +659,7 @@ def validate_medium_cherry():
         if preprocessed_image is None:
             return jsonify({"error": "Error processing image"}), 400
 
-        # Run prediction with hardcoded threshold
+        # Run prediction with provided or default threshold
         prediction_result = predict_binary_classification(
             interpreter, 
             preprocessed_image,
@@ -664,8 +673,10 @@ def validate_medium_cherry():
         result = {
             "result": prediction_result["is_in_range"],
             "confidence": prediction_result["confidence"],
+            "raw_confidence": prediction_result["raw_prediction"],
             "position_score": 0.0,  # Neutral position score
-            "color_space_used": color_space
+            "color_space_used": color_space,
+            "threshold_used": THRESHOLD  # Add the threshold used for transparency
         }
         
         return jsonify(result)
@@ -686,6 +697,9 @@ def validate_desert_oak():
         
         image = data.get("image")
         mime_type = data.get("mimeType")
+        # Check if threshold is provided in the request
+        if (data.get("threshold") is not None):
+            THRESHOLD = data.get("threshold")
         color_space = "lab"  # Always use LAB color space
 
         if not image or not mime_type:
@@ -701,7 +715,7 @@ def validate_desert_oak():
         if preprocessed_image is None:
             return jsonify({"error": "Error processing image"}), 400
 
-        # Run prediction with hardcoded threshold
+        # Run prediction with provided or default threshold
         prediction_result = predict_binary_classification(
             interpreter, 
             preprocessed_image,
@@ -715,8 +729,10 @@ def validate_desert_oak():
         result = {
             "result": prediction_result["is_in_range"],
             "confidence": prediction_result["confidence"],
+            "raw_confidence": prediction_result["raw_prediction"],
             "position_score": 0.0,  # Neutral position score
-            "color_space_used": color_space
+            "color_space_used": color_space,
+            "threshold_used": THRESHOLD  # Add the threshold used for transparency
         }
         
         return jsonify(result)
@@ -737,12 +753,15 @@ def validate_graphite_walnut():
         
         image = data.get("image")
         mime_type = data.get("mimeType")
+        # Check if threshold is provided in the request
+        if (data.get("threshold") is not None):
+            THRESHOLD = data.get("threshold")
         color_space = "lab"  # Always use LAB color space
 
         if not image or not mime_type:
             return jsonify({"error": "Invalid input - missing image or mimeType"}), 400
 
-        # Fix typo in model name (if needed)
+        # Use the graphite walnut validation model
         model_name = 'validation_model_graphite_walnut'
         interpreter = interpreters.get(model_name)
         if not interpreter:
@@ -752,7 +771,7 @@ def validate_graphite_walnut():
         if preprocessed_image is None:
             return jsonify({"error": "Error processing image"}), 400
 
-        # Run prediction with hardcoded threshold
+        # Run prediction with provided or default threshold
         prediction_result = predict_binary_classification(
             interpreter, 
             preprocessed_image,
@@ -766,8 +785,10 @@ def validate_graphite_walnut():
         result = {
             "result": prediction_result["is_in_range"],
             "confidence": prediction_result["confidence"],
+            "raw_confidence": prediction_result["raw_prediction"],
             "position_score": 0.0,  # Neutral position score
-            "color_space_used": color_space
+            "color_space_used": color_space,
+            "threshold_used": THRESHOLD  # Add the threshold used for transparency
         }
         
         return jsonify(result)
@@ -775,7 +796,7 @@ def validate_graphite_walnut():
     except Exception as e:
         logger.error(f"Error in graphite walnut validation endpoint: {e}")
         return jsonify({"error": str(e)}), 500
-
+    
 # Full report endpoint
 @app.route('/generate-full-report', methods=['POST'])
 def generate_full_report():
