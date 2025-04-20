@@ -559,7 +559,7 @@ export default function ImagePickerScreen() {
       // Calculate threshold based on RGB prediction
       const baseThreshold = 0.5;
       const isInRange = analysisData.isInRange;
-      const threshold = isInRange ? baseThreshold + 0.05 : baseThreshold - 0.05;
+      const threshold = isInRange ? baseThreshold - 0.05 : baseThreshold + 0.05;
 
       logInfo(
         COMPONENT_NAME,
@@ -904,6 +904,21 @@ export default function ImagePickerScreen() {
         "There was an error when trying to generate the report: " +
           error.message
       );
+    }
+  };
+
+  // First, create a helper function to get the wood color by name
+  const getWoodTypeColor = (woodType) => {
+    try {
+      // Convert display name format to color key format
+      // e.g. "Medium Cherry" -> "medium-cherry"
+      const formattedType = woodType?.toLowerCase().replace(/\s+/g, "-");
+
+      // Return the color from WOOD_TYPE_COLORS or a default color
+      return WOOD_TYPE_COLORS[formattedType] || colors.text;
+    } catch (error) {
+      logError(COMPONENT_NAME, "getWoodTypeColor", error);
+      return colors.text; // Fall back to default text color
     }
   };
 
@@ -1799,7 +1814,7 @@ export default function ImagePickerScreen() {
     },
     // Styles for AI experiment feature
     experimentButton: {
-      backgroundColor: "#5E35B1", // Purple color
+      backgroundColor: colors.primary, // Purple color
       paddingVertical: 12,
       paddingHorizontal: 24,
       borderRadius: 25, // Oval shape
@@ -2078,7 +2093,12 @@ export default function ImagePickerScreen() {
                       </Text>
 
                       <View style={dynamicStyles.resultHeader}>
-                        <Text style={dynamicStyles.woodTypeLabel}>
+                        <Text
+                          style={[
+                            dynamicStyles.woodTypeLabel,
+                            { color: getWoodTypeColor(analysisData.woodType) },
+                          ]}
+                        >
                           {analysisData.woodType}
                         </Text>
 
@@ -2311,9 +2331,11 @@ export default function ImagePickerScreen() {
                           hundreds of wood veneer samples and uses computer
                           vision techniques to analyze color values in the LAB
                           color space. The confidence score indicates how
-                          certain the AI is about its prediction. Please note
-                          that this is an experimental feature and results may
-                          vary.
+                          certain the AI is about its prediction.
+                          <Text style={{ fontStyle: "italic" }}>
+                            {/* Space added here -> */} Please note that this is
+                            an experimental feature and results may vary.
+                          </Text>
                         </Text>
                       </View>
                     </View>
