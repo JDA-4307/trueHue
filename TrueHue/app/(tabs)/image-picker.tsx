@@ -387,9 +387,9 @@ export default function ImagePickerScreen() {
   // Helper: Get a label based on the regression score
   const getPositionLabel = (score) => {
     try {
-      if (score < -0.5)
+      if (score < -0.5 || score > 0.5)
         return settings.language === "en"
-          ? "Out of Range Too Dark"
+          ? "Out of Range"
           : settings.language === "es"
           ? "Muy Oscuro"
           : settings.language === "fr"
@@ -398,9 +398,9 @@ export default function ImagePickerScreen() {
           ? "Sehr Dunkel"
           : "非常深";
 
-      if (score < -0.1)
+      if (score >= -0.5 || score <= 0.5)
         return settings.language === "en"
-          ? "In Range Dark"
+          ? "In Range"
           : settings.language === "es"
           ? "Oscuro"
           : settings.language === "fr"
@@ -408,38 +408,6 @@ export default function ImagePickerScreen() {
           : settings.language === "de"
           ? "Dunkel"
           : "深色";
-
-      if (score < 0.1)
-        return settings.language === "en"
-          ? "In Range"
-          : settings.language === "es"
-          ? "Bien en Rango"
-          : settings.language === "fr"
-          ? "Bien dans la Gamme"
-          : settings.language === "de"
-          ? "Gut im Bereich"
-          : "在范围内";
-
-      if (score < 0.5)
-        return settings.language === "en"
-          ? "In Range Light"
-          : settings.language === "es"
-          ? "Claro"
-          : settings.language === "fr"
-          ? "Clair"
-          : settings.language === "de"
-          ? "Hell"
-          : "浅色";
-
-      return settings.language === "en"
-        ? "Out of Range Too Light"
-        : settings.language === "es"
-        ? "Muy Claro"
-        : settings.language === "fr"
-        ? "Très Clair"
-        : settings.language === "de"
-        ? "Sehr Hell"
-        : "非常浅";
     } catch (error) {
       logError(COMPONENT_NAME, "getPositionLabel", error);
       return "Unknown";
@@ -465,7 +433,11 @@ export default function ImagePickerScreen() {
         "analyzeImage",
         "Showing wood type selection buttons"
       );
-
+      setResponseText(null);
+      setPositionScore(null);
+      setConfidence(null);
+      setReportData(null);
+      setAnalysisData(null);
       // Set the mode to 'analyze' and show the wood type buttons
       setWoodSelectionMode("analyze");
       setShowWoodTypeButtons(true);
@@ -812,12 +784,13 @@ export default function ImagePickerScreen() {
       );
 
       // Show simplified alert
+      /*
       Alert.alert(
         "Analysis Complete",
         `Wood Type: ${formatWoodType(rgbWoodType)}\nResult: ${
           mainCategory === "in-range" ? "In Range" : "Out of Range"
         }`
-      );
+      );*/
 
       setShowWoodTypeButtons(false);
 
@@ -1316,7 +1289,7 @@ export default function ImagePickerScreen() {
       if (isAnalysis) {
         // Format for analysisData
         docData = {
-          Accuracy: analysisData.isInRange ? "in-range" : "out-of-range",
+          Accuracy: analysisData.isInRange ? "In Range" : "Out of Range",
           Date: new Date().toISOString(),
           Wood: analysisData.woodType || st.unknown,
           Category: analysisData.predictedCategory || "Unknown",
@@ -1821,7 +1794,7 @@ export default function ImagePickerScreen() {
     },
     shareButton: {
       flex: 1,
-      backgroundColor: "#5E35B1",
+      backgroundColor: colors.primary,
       paddingVertical: 14,
       borderRadius: 10,
       alignItems: "center",
@@ -2237,6 +2210,16 @@ export default function ImagePickerScreen() {
                             {st.saveReport || "Save Report"}
                           </Text>
                         </TouchableOpacity>
+
+                        <TouchableOpacity
+                      style={dynamicStyles.shareButton}
+                      onPress={() => Linking.openURL(mailtoLink)}
+                      testID="share-report-button"
+                    >
+                      <Text style={dynamicStyles.buttonText}>
+                        {st.shareResults || "Share"}
+                      </Text>
+                    </TouchableOpacity>
                       </View>
                     </View>
                   )}
