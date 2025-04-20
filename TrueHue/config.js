@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 
 // Get the API URL from environment variables or use default
 
-const API_URL = "http://localhost:3050";
+const API_URL = "http://10.91.55.52:3050";
 
 /*
 const API_URL =
