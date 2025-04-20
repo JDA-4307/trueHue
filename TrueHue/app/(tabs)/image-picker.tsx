@@ -77,17 +77,20 @@ export default function ImagePickerScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [reportData, setReportData] = useState(null);
-  const [hasGalleryPermission, setHasGalleryPermission] = useState<
-    boolean | null
-  >(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<
-    boolean | null
-  >(null);
+  const [hasGalleryPermission, setHasGalleryPermission] = useState(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState(null);
   const [showWoodTypeButtons, setShowWoodTypeButtons] = useState(false);
   const [woodSelectionMode, setWoodSelectionMode] = useState(null); // 'analyze' or 'report'
   const [showReport, setShowReport] = useState(false);
   const [analysisData, setAnalysisData] = useState(null);
   const [lastError, setLastError] = useState(null);
+
+  // New state variables for experimental AI feature
+  const [showExperimentButton, setShowExperimentButton] = useState(false);
+  const [showAIResults, setShowAIResults] = useState(false);
+  const [aiPrediction, setAIPrediction] = useState(null);
+  const [aiConfidence, setAIConfidence] = useState(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
 
   // Get settings from context
   const { settings } = useSettings();
@@ -168,6 +171,7 @@ export default function ImagePickerScreen() {
       seeDetails: "See details below.",
       reportSaved: "Report saved successfully",
       errorSaving: "Error saving report",
+      aiModelInfo: "About the AI Model",
     };
   }
 
@@ -281,6 +285,10 @@ export default function ImagePickerScreen() {
         setAnalysisData(null);
         setShowWoodTypeButtons(false);
         setLastError(null);
+        setShowExperimentButton(false);
+        setShowAIResults(false);
+        setAIPrediction(null);
+        setAIConfidence(null);
       } else {
         logInfo(
           COMPONENT_NAME,
@@ -345,6 +353,10 @@ export default function ImagePickerScreen() {
         setAnalysisData(null);
         setShowWoodTypeButtons(false);
         setLastError(null);
+        setShowExperimentButton(false);
+        setShowAIResults(false);
+        setAIPrediction(null);
+        setAIConfidence(null);
       } else {
         logInfo(
           COMPONENT_NAME,
@@ -447,6 +459,12 @@ export default function ImagePickerScreen() {
       // Set the mode to 'analyze' and show the wood type buttons
       setWoodSelectionMode("analyze");
       setShowWoodTypeButtons(true);
+
+      // Reset AI-related state
+      setShowExperimentButton(false);
+      setShowAIResults(false);
+      setAIPrediction(null);
+      setAIConfidence(null);
     } catch (error) {
       const errorMsg = logError(COMPONENT_NAME, "analyzeImage", error);
       setLastError(errorMsg);
@@ -520,6 +538,12 @@ export default function ImagePickerScreen() {
 
       // Reset the selection mode
       setWoodSelectionMode(null);
+
+      // Reset AI-related state
+      setShowExperimentButton(false);
+      setShowAIResults(false);
+      setAIPrediction(null);
+      setAIConfidence(null);
     } catch (error) {
       const errorMsg = logError(
         COMPONENT_NAME,
@@ -531,6 +555,111 @@ export default function ImagePickerScreen() {
         "Error",
         "There was an error processing your selection: " + error.message
       );
+    }
+  };
+
+  // New function to fetch AI prediction
+  const fetchAIPrediction = async () => {
+    if (!analysisData || !analysisData.woodType) {
+      Alert.alert("Error", "No wood type selected for AI prediction.");
+      return;
+    }
+
+    try {
+      // Format wood type for the API call (e.g., "Medium Cherry" -> "medium-cherry")
+      const formattedWoodType = analysisData.woodType
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+
+      // Calculate threshold based on RGB prediction
+      const baseThreshold = 0.5;
+      const isInRange = analysisData.isInRange;
+      const threshold = isInRange ? baseThreshold + 0.05 : baseThreshold - 0.05;
+
+      logInfo(
+        COMPONENT_NAME,
+        "fetchAIPrediction",
+        `Fetching AI prediction for ${formattedWoodType} with threshold ${threshold.toFixed(
+          2
+        )}`
+      );
+      setIsLoadingAI(true);
+
+      let endpointUrl;
+      switch (formattedWoodType) {
+        case "medium-cherry":
+          endpointUrl = BACKEND_URLS.medium_cherry;
+          break;
+        case "desert-oak":
+          endpointUrl = BACKEND_URLS.desert_oak;
+          break;
+        case "graphite-walnut":
+          endpointUrl = BACKEND_URLS.graphite_walnut;
+          break;
+        default:
+          throw new Error(`Unknown wood type: ${formattedWoodType}`);
+      }
+
+      logInfo(
+        COMPONENT_NAME,
+        "fetchAIPrediction",
+        `Using endpoint: ${endpointUrl}`
+      );
+
+      const response = await axios.post(
+        endpointUrl,
+        {
+          image: imageBase64,
+          mimeType: "image/jpeg",
+          threshold: threshold, // Add threshold parameter to API call
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      logInfo(
+        COMPONENT_NAME,
+        "fetchAIPrediction",
+        `Response status: ${response.status}`
+      );
+
+      if (!response.data) {
+        throw new Error("No data received from AI prediction service");
+      }
+
+      // Extract result and confidence
+      const result = response.data.result; // Boolean: true for in range, false for out of range
+      const confidence = response.data.confidence || 0;
+
+      logInfo(
+        COMPONENT_NAME,
+        "fetchAIPrediction",
+        `AI Prediction - Result: ${
+          result ? "In Range" : "Out of Range"
+        }, Confidence: ${confidence.toFixed(2)}%, Used threshold: ${threshold}`
+      );
+
+      setAIPrediction(result);
+      setAIConfidence(confidence);
+      setShowAIResults(true);
+    } catch (error) {
+      const errorMsg = logError(COMPONENT_NAME, "fetchAIPrediction", error);
+      setLastError(errorMsg);
+
+      if (axios.isAxiosError(error)) {
+        Alert.alert(
+          "AI Prediction Error",
+          `Failed to get AI prediction: ${
+            error.response?.data?.error || error.message
+          }`
+        );
+      } else {
+        Alert.alert(
+          "AI Prediction Error",
+          `Failed to get AI prediction: ${error.message}`
+        );
+      }
+    } finally {
+      setIsLoadingAI(false);
     }
   };
 
@@ -772,6 +901,12 @@ export default function ImagePickerScreen() {
       // Set the mode to 'report' and show the wood type buttons
       setWoodSelectionMode("report");
       setShowWoodTypeButtons(true);
+
+      // Reset AI-related state
+      setShowExperimentButton(false);
+      setShowAIResults(false);
+      setAIPrediction(null);
+      setAIConfidence(null);
     } catch (error) {
       const errorMsg = logError(COMPONENT_NAME, "generateFullReport", error);
       setLastError(errorMsg);
@@ -979,10 +1114,12 @@ export default function ImagePickerScreen() {
         setPositionScore(mappedScore); // Add this line to set position score for analysis mode
         setAnalysisData(analysisData);
         setReportData(null); // Explicitly clear report data
+        setShowExperimentButton(true); // Show the experiment button for analysis mode
       } else if (currentMode === "report") {
         setPositionScore(null); // Add this line to set position score for analysis mode
         setAnalysisData(null); // Keep this for both modes if needed
         setReportData(formattedData);
+        setShowExperimentButton(false); // Don't show experiment button for report mode
       }
 
       const mainCategory =
@@ -1084,6 +1221,10 @@ export default function ImagePickerScreen() {
       setShowWoodTypeButtons(false);
       setWoodSelectionMode(null);
       setLastError(null);
+      setShowExperimentButton(false);
+      setShowAIResults(false);
+      setAIPrediction(null);
+      setAIConfidence(null);
     } catch (error) {
       const errorMsg = logError(COMPONENT_NAME, "reuploadImage", error);
       setLastError(errorMsg);
@@ -1654,6 +1795,65 @@ export default function ImagePickerScreen() {
       fontSize: 12,
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     },
+    // New styles for AI experiment feature
+    experimentButton: {
+      backgroundColor: "#5E35B1", // Purple color
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 25, // Oval shape
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      alignSelf: "center",
+      marginTop: 16,
+      marginBottom: 16,
+      shadowColor: "#5E35B1",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    experimentButtonText: {
+      color: "white",
+      fontSize: 16,
+      fontWeight: "600",
+      marginLeft: 8,
+    },
+    aiResultsCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 20,
+      width: "100%",
+      marginVertical: 16,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    aiResultsContent: {
+      marginVertical: 12,
+    },
+    aiResultsLabel: {
+      fontSize: 16,
+      color: colors.secondaryText,
+      marginBottom: 8,
+    },
+    // Styles for "What does this mean?" section
+    whatDoesThisMeanContainer: {
+      marginTop: 16,
+    },
+    whatDoesThisMeanTitle: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.text,
+      marginBottom: 8,
+    },
+    whatDoesThisMeanText: {
+      fontSize: 14,
+      color: colors.secondaryText,
+      lineHeight: 20,
+    },
   });
 
   return (
@@ -1975,6 +2175,117 @@ export default function ImagePickerScreen() {
                         {st.saveReport || "Save Report"}
                       </Text>
                     </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* Experiment AI Results Button */}
+              {showExperimentButton &&
+                analysisData &&
+                !isLoadingAI &&
+                !showAIResults && (
+                  <TouchableOpacity
+                    style={dynamicStyles.experimentButton}
+                    onPress={fetchAIPrediction}
+                    testID="ai-experiment-button"
+                  >
+                    {/* Magic Wand Icon */}
+                    <View
+                      style={{
+                        width: 24,
+                        height: 24,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: 20 }}>✨</Text>
+                    </View>
+                    <Text style={dynamicStyles.experimentButtonText}>
+                      Experiment AI Results
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+              {/* AI Results Loading Indicator */}
+              {isLoadingAI && (
+                <View style={dynamicStyles.loaderContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={dynamicStyles.loaderText}>
+                    Analyzing with AI...
+                  </Text>
+                </View>
+              )}
+
+              {/* AI Results Card */}
+              {showAIResults && aiPrediction !== null && (
+                <View
+                  style={dynamicStyles.aiResultsCard}
+                  testID="ai-results-card"
+                >
+                  <Text style={dynamicStyles.responseTitle}>
+                    AI Prediction Results
+                  </Text>
+
+                  <View style={dynamicStyles.aiResultsContent}>
+                    <Text style={dynamicStyles.aiResultsLabel}>
+                      AI Prediction:
+                    </Text>
+                    <View
+                      style={[
+                        dynamicStyles.resultBadge,
+                        {
+                          backgroundColor: aiPrediction ? "#4CAF50" : "#FF9800",
+                          alignSelf: "flex-start",
+                        },
+                      ]}
+                    >
+                      <Text style={dynamicStyles.resultBadgeText}>
+                        {aiPrediction
+                          ? st.inRange || "In Range"
+                          : st.outOfRange || "Out of Range"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={dynamicStyles.aiResultsContent}>
+                    <Text style={dynamicStyles.aiResultsLabel}>
+                      AI Confidence:
+                    </Text>
+                    <View style={dynamicStyles.scoreRow}>
+                      <View style={dynamicStyles.scoreBarContainer}>
+                        <View style={dynamicStyles.scoreBarBackground}>
+                          <View
+                            style={[
+                              dynamicStyles.scoreBarFill,
+                              {
+                                width: `${aiConfidence}%`,
+                                backgroundColor: colors.primary,
+                              },
+                            ]}
+                          />
+                        </View>
+                        <Text style={dynamicStyles.scoreValue}>
+                          {aiConfidence.toFixed(1)}%
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={dynamicStyles.divider} />
+
+                  <View style={dynamicStyles.whatDoesThisMeanContainer}>
+                    <Text style={dynamicStyles.whatDoesThisMeanTitle}>
+                      What does this mean?
+                    </Text>
+                    <Text style={dynamicStyles.whatDoesThisMeanText}>
+                      This experimental AI model uses a binary classification
+                      system to predict if wood veneer colors are in range or
+                      out of range. The model was trained on hundreds of wood
+                      veneer samples and uses computer vision techniques to
+                      analyze color values in the LAB color space. The
+                      confidence score indicates how certain the AI is about its
+                      prediction.
+                    </Text>
                   </View>
                 </View>
               )}
