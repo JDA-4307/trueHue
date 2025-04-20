@@ -59,6 +59,13 @@ const transformProbability = (probability, power = 0.3) => {
   return transformed * 100;
 };
 
+// Define wood type colors
+const WOOD_TYPE_COLORS = {
+  "medium-cherry": "#8B3E2F", // A reddish-brown color for Medium Cherry
+  "desert-oak": "#CDAA7D", // A light tan/beige color for Desert Oak
+  "graphite-walnut": "#5C4033", // A dark brown color for Graphite Walnut
+};
+
 // Ignore specific warnings that might be irrelevant
 LogBox.ignoreLogs([
   "Non-serializable values were found in the navigation state",
@@ -84,6 +91,7 @@ export default function ImagePickerScreen() {
   const [showReport, setShowReport] = useState(false);
   const [analysisData, setAnalysisData] = useState(null);
   const [lastError, setLastError] = useState(null);
+  const [showAnalysisResults, setShowAnalysisResults] = useState(true); // New state to control visibility of analysis cards
 
   // New state variables for experimental AI feature
   const [showExperimentButton, setShowExperimentButton] = useState(false);
@@ -289,6 +297,7 @@ export default function ImagePickerScreen() {
         setShowAIResults(false);
         setAIPrediction(null);
         setAIConfidence(null);
+        setShowAnalysisResults(true); // Reset analysis results visibility
       } else {
         logInfo(
           COMPONENT_NAME,
@@ -357,6 +366,7 @@ export default function ImagePickerScreen() {
         setShowAIResults(false);
         setAIPrediction(null);
         setAIConfidence(null);
+        setShowAnalysisResults(true); // Reset analysis results visibility
       } else {
         logInfo(
           COMPONENT_NAME,
@@ -459,6 +469,9 @@ export default function ImagePickerScreen() {
       // Set the mode to 'analyze' and show the wood type buttons
       setWoodSelectionMode("analyze");
       setShowWoodTypeButtons(true);
+
+      // Hide previous analysis results when starting a new analysis
+      setShowAnalysisResults(false);
 
       // Reset AI-related state
       setShowExperimentButton(false);
@@ -902,6 +915,9 @@ export default function ImagePickerScreen() {
       setWoodSelectionMode("report");
       setShowWoodTypeButtons(true);
 
+      // Hide previous analysis results when starting a new analysis
+      setShowAnalysisResults(false);
+
       // Reset AI-related state
       setShowExperimentButton(false);
       setShowAIResults(false);
@@ -1115,11 +1131,13 @@ export default function ImagePickerScreen() {
         setAnalysisData(analysisData);
         setReportData(null); // Explicitly clear report data
         setShowExperimentButton(true); // Show the experiment button for analysis mode
+        setShowAnalysisResults(true); // Show analysis results after processing is complete
       } else if (currentMode === "report") {
         setPositionScore(null); // Add this line to set position score for analysis mode
         setAnalysisData(null); // Keep this for both modes if needed
         setReportData(formattedData);
         setShowExperimentButton(false); // Don't show experiment button for report mode
+        setShowAnalysisResults(true); // Show analysis results after processing is complete
       }
 
       const mainCategory =
@@ -1225,6 +1243,7 @@ export default function ImagePickerScreen() {
       setShowAIResults(false);
       setAIPrediction(null);
       setAIConfidence(null);
+      setShowAnalysisResults(true); // Reset analysis results visibility
     } catch (error) {
       const errorMsg = logError(COMPONENT_NAME, "reuploadImage", error);
       setLastError(errorMsg);
@@ -1437,18 +1456,28 @@ export default function ImagePickerScreen() {
       marginBottom: 16,
     },
     woodTypeButton: {
-      backgroundColor: "#5E35B1", // Purple color for the buttons
       paddingVertical: 14,
       paddingHorizontal: 20,
       borderRadius: 10,
       width: "100%",
       alignItems: "center",
-      shadowColor: "#5E35B1",
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2,
       shadowRadius: 4,
       elevation: 3,
       marginBottom: 8,
+    },
+    mediumCherryButton: {
+      backgroundColor: WOOD_TYPE_COLORS["medium-cherry"],
+      shadowColor: WOOD_TYPE_COLORS["medium-cherry"],
+    },
+    desertOakButton: {
+      backgroundColor: WOOD_TYPE_COLORS["desert-oak"],
+      shadowColor: WOOD_TYPE_COLORS["desert-oak"],
+    },
+    graphiteWalnutButton: {
+      backgroundColor: WOOD_TYPE_COLORS["graphite-walnut"],
+      shadowColor: WOOD_TYPE_COLORS["graphite-walnut"],
     },
     cancelButton: {
       backgroundColor: "transparent",
@@ -1795,7 +1824,7 @@ export default function ImagePickerScreen() {
       fontSize: 12,
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     },
-    // New styles for AI experiment feature
+    // Styles for AI experiment feature
     experimentButton: {
       backgroundColor: "#5E35B1", // Purple color
       paddingVertical: 12,
@@ -1930,7 +1959,10 @@ export default function ImagePickerScreen() {
                   </Text>
 
                   <TouchableOpacity
-                    style={dynamicStyles.woodTypeButton}
+                    style={[
+                      dynamicStyles.woodTypeButton,
+                      dynamicStyles.mediumCherryButton,
+                    ]}
                     onPress={() => handleWoodTypeSelection("medium-cherry")}
                   >
                     <Text style={dynamicStyles.buttonText}>
@@ -1939,7 +1971,10 @@ export default function ImagePickerScreen() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={dynamicStyles.woodTypeButton}
+                    style={[
+                      dynamicStyles.woodTypeButton,
+                      dynamicStyles.desertOakButton,
+                    ]}
                     onPress={() => handleWoodTypeSelection("desert-oak")}
                   >
                     <Text style={dynamicStyles.buttonText}>
@@ -1948,7 +1983,10 @@ export default function ImagePickerScreen() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={dynamicStyles.woodTypeButton}
+                    style={[
+                      dynamicStyles.woodTypeButton,
+                      dynamicStyles.graphiteWalnutButton,
+                    ]}
                     onPress={() => handleWoodTypeSelection("graphite-walnut")}
                   >
                     <Text style={dynamicStyles.buttonText}>
@@ -1961,6 +1999,7 @@ export default function ImagePickerScreen() {
                     onPress={() => {
                       setShowWoodTypeButtons(false);
                       setWoodSelectionMode(null);
+                      setShowAnalysisResults(true); // Show previous analysis results if any
                     }}
                   >
                     <Text style={dynamicStyles.cancelButtonText}>
@@ -2012,387 +2051,396 @@ export default function ImagePickerScreen() {
                 </View>
               )}
 
-              {/* Spectrum Bar */}
-              {positionScore !== null && (
-                <View style={dynamicStyles.spectrumCard}>
-                  <Text style={dynamicStyles.spectrumTitle}>
-                    {st.colorAnalysis}
-                  </Text>
-
-                  <View style={dynamicStyles.spectrumContainer}>
-                    <View style={dynamicStyles.spectrumLabels}>
-                      <Text style={dynamicStyles.spectrumLabel}>
-                        {st.tooDark || "Too Dark"}
+              {/* Analysis Results Section - Only show when showAnalysisResults is true */}
+              {showAnalysisResults && (
+                <>
+                  {/* Spectrum Bar */}
+                  {positionScore !== null && (
+                    <View style={dynamicStyles.spectrumCard}>
+                      <Text style={dynamicStyles.spectrumTitle}>
+                        {st.colorAnalysis}
                       </Text>
-                      <Text style={dynamicStyles.spectrumLabel}>
-                        {st.tooLight || "Too Light"}
-                      </Text>
-                    </View>
 
-                    <View style={dynamicStyles.spectrumBar}>
-                      <View
-                        style={[
-                          dynamicStyles.spectrumFill,
-                          { width: `${((positionScore + 1) / 2) * 100}%` },
-                        ]}
-                      />
-                      <View
-                        style={[
-                          dynamicStyles.spectrumMarker,
-                          { left: `${((positionScore + 1) / 2) * 100}%` },
-                        ]}
-                      />
-                    </View>
+                      <View style={dynamicStyles.spectrumContainer}>
+                        <View style={dynamicStyles.spectrumLabels}>
+                          <Text style={dynamicStyles.spectrumLabel}>
+                            {st.tooDark || "Too Dark"}
+                          </Text>
+                          <Text style={dynamicStyles.spectrumLabel}>
+                            {st.tooLight || "Too Light"}
+                          </Text>
+                        </View>
 
-                    <Text style={dynamicStyles.positionLabel}>
-                      {st.analysis}: {getPositionLabel(positionScore)}
-                    </Text>
-                    {/* Confidence label removed */}
-                  </View>
-                </View>
-              )}
-
-              {/* Enhanced Analysis Results Card */}
-              {analysisData && (
-                <View
-                  style={dynamicStyles.responseCard}
-                  testID="analysis-results-card"
-                >
-                  <Text style={dynamicStyles.responseTitle}>
-                    {st.analysisResults || "Analysis Results"}
-                  </Text>
-
-                  <View style={dynamicStyles.resultHeader}>
-                    <Text style={dynamicStyles.woodTypeLabel}>
-                      {analysisData.woodType}
-                    </Text>
-
-                    <View
-                      style={[
-                        dynamicStyles.resultBadge,
-                        {
-                          backgroundColor: analysisData.isInRange
-                            ? "#4CAF50"
-                            : "#FF9800",
-                        },
-                      ]}
-                    >
-                      <Text style={dynamicStyles.resultBadgeText}>
-                        {analysisData.isInRange
-                          ? st.inRange || "In Range"
-                          : st.outOfRange || "Out of Range"}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text style={dynamicStyles.categoryText}>
-                    {st.category || "Category"}:{" "}
-                    {analysisData.predictedCategory}
-                  </Text>
-
-                  {/* Validation Probability - Now with transformed value */}
-                  <View style={dynamicStyles.validationContainer}>
-                    <Text style={dynamicStyles.scoresSectionTitle}>
-                      {st.validationProbability || "Validation Probability"}
-                    </Text>
-                    <View style={dynamicStyles.scoreRow}>
-                      <View style={dynamicStyles.scoreNameContainer}>
-                        <Text style={dynamicStyles.scoreName}>
-                          {analysisData.isInRange
-                            ? st.inRange || "In Range"
-                            : st.outOfRange || "Out of Range"}
-                        </Text>
-                      </View>
-                      <View style={dynamicStyles.scoreBarContainer}>
-                        <View style={dynamicStyles.scoreBarBackground}>
+                        <View style={dynamicStyles.spectrumBar}>
                           <View
                             style={[
-                              dynamicStyles.scoreBarFill,
-                              {
-                                width: `${analysisData.transformedValidationProbability}%`,
-                                backgroundColor: colors.primary,
-                              },
+                              dynamicStyles.spectrumFill,
+                              { width: `${((positionScore + 1) / 2) * 100}%` },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              dynamicStyles.spectrumMarker,
+                              { left: `${((positionScore + 1) / 2) * 100}%` },
                             ]}
                           />
                         </View>
-                        <Text style={dynamicStyles.scoreValue}>
-                          {analysisData.transformedValidationProbability.toFixed(
-                            1
-                          )}
-                          %
+
+                        <Text style={dynamicStyles.positionLabel}>
+                          {st.analysis}: {getPositionLabel(positionScore)}
                         </Text>
+                        {/* Confidence label removed */}
                       </View>
                     </View>
-                  </View>
+                  )}
 
-                  <View style={dynamicStyles.divider} />
-
-                  <Text style={dynamicStyles.scoresSectionTitle}>
-                    {st.categorySimilarity || "Category Similarity"}
-                  </Text>
-
-                  {analysisData.similarityScores.map((item, index) => (
+                  {/* Enhanced Analysis Results Card */}
+                  {analysisData && (
                     <View
-                      key={index}
-                      style={dynamicStyles.scoreRow}
-                      testID={`score-row-${index}`}
+                      style={dynamicStyles.responseCard}
+                      testID="analysis-results-card"
                     >
-                      <View style={dynamicStyles.scoreNameContainer}>
-                        <Text style={dynamicStyles.scoreName}>
-                          {item.category}
-                        </Text>
-                      </View>
-                      <View style={dynamicStyles.scoreBarContainer}>
-                        <View style={dynamicStyles.scoreBarBackground}>
-                          <View
-                            style={[
-                              dynamicStyles.scoreBarFill,
-                              {
-                                width: `${item.score}%`,
-                                backgroundColor:
-                                  index === 0 ? colors.primary : "#607D8B",
-                              },
-                            ]}
-                          />
-                        </View>
-                        <Text style={dynamicStyles.scoreValue}>
-                          {item.score.toFixed(1)}%
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-
-                  {/* Save button for Analysis Data Card */}
-                  <View
-                    style={[dynamicStyles.reportActions, { marginTop: 20 }]}
-                  >
-                    <TouchableOpacity
-                      style={dynamicStyles.saveButton}
-                      onPress={() => saveReport(true)}
-                      testID="save-analysis-button"
-                    >
-                      <Text style={dynamicStyles.buttonText}>
-                        {st.saveReport || "Save Report"}
+                      <Text style={dynamicStyles.responseTitle}>
+                        {st.analysisResults || "Analysis Results"}
                       </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
 
-              {/* Experiment AI Results Button */}
-              {showExperimentButton &&
-                analysisData &&
-                !isLoadingAI &&
-                !showAIResults && (
-                  <TouchableOpacity
-                    style={dynamicStyles.experimentButton}
-                    onPress={fetchAIPrediction}
-                    testID="ai-experiment-button"
-                  >
-                    {/* Magic Wand Icon */}
-                    <View
-                      style={{
-                        width: 24,
-                        height: 24,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Text style={{ fontSize: 20 }}>✨</Text>
-                    </View>
-                    <Text style={dynamicStyles.experimentButtonText}>
-                      Experimental AI Results
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-              {/* AI Results Loading Indicator */}
-              {isLoadingAI && (
-                <View style={dynamicStyles.loaderContainer}>
-                  <ActivityIndicator size="large" color={colors.primary} />
-                  <Text style={dynamicStyles.loaderText}>
-                    Analyzing with AI...
-                  </Text>
-                </View>
-              )}
-
-              {/* AI Results Card */}
-              {showAIResults && aiPrediction !== null && (
-                <View
-                  style={dynamicStyles.aiResultsCard}
-                  testID="ai-results-card"
-                >
-                  <Text style={dynamicStyles.responseTitle}>
-                    AI Prediction Results
-                  </Text>
-
-                  <View style={dynamicStyles.aiResultsContent}>
-                    <Text style={dynamicStyles.aiResultsLabel}>
-                      AI Prediction:
-                    </Text>
-                    <View
-                      style={[
-                        dynamicStyles.resultBadge,
-                        {
-                          backgroundColor: aiPrediction ? "#4CAF50" : "#FF9800",
-                          alignSelf: "flex-start",
-                        },
-                      ]}
-                    >
-                      <Text style={dynamicStyles.resultBadgeText}>
-                        {aiPrediction
-                          ? st.inRange || "In Range"
-                          : st.outOfRange || "Out of Range"}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={dynamicStyles.aiResultsContent}>
-                    <Text style={dynamicStyles.aiResultsLabel}>
-                      AI Confidence:
-                    </Text>
-                    <View style={dynamicStyles.scoreRow}>
-                      <View style={dynamicStyles.scoreBarContainer}>
-                        <View style={dynamicStyles.scoreBarBackground}>
-                          <View
-                            style={[
-                              dynamicStyles.scoreBarFill,
-                              {
-                                width: `${aiConfidence}%`,
-                                backgroundColor: colors.primary,
-                              },
-                            ]}
-                          />
-                        </View>
-                        <Text style={dynamicStyles.scoreValue}>
-                          {aiConfidence.toFixed(1)}%
+                      <View style={dynamicStyles.resultHeader}>
+                        <Text style={dynamicStyles.woodTypeLabel}>
+                          {analysisData.woodType}
                         </Text>
-                      </View>
-                    </View>
-                  </View>
 
-                  <View style={dynamicStyles.divider} />
-
-                  <View style={dynamicStyles.whatDoesThisMeanContainer}>
-                    <Text style={dynamicStyles.whatDoesThisMeanTitle}>
-                      What does this mean?
-                    </Text>
-                    <Text style={dynamicStyles.whatDoesThisMeanText}>
-                      This experimental AI model uses a binary classification
-                      system to predict if wood veneer colors are in range or
-                      out of range. The model was trained on hundreds of wood
-                      veneer samples and uses computer vision techniques to
-                      analyze color values in the LAB color space. The
-                      confidence score indicates how certain the AI is about its
-                      prediction. Please note that this is an experimental
-                      feature and results may vary.
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Full Report Results */}
-              {reportData && (
-                <View
-                  style={dynamicStyles.reportContainer}
-                  testID="full-report-container"
-                >
-                  <Text style={dynamicStyles.reportTitle}>
-                    {st.reportTitle || "Wood Analysis Report"}
-                  </Text>
-
-                  <View style={dynamicStyles.reportSection}>
-                    <Text style={dynamicStyles.sectionHeader}>
-                      {st.woodClassification}
-                    </Text>
-                    <Text style={dynamicStyles.woodType}>
-                      {formatWoodType(reportData.wood_type?.classification) ||
-                        st.unknown}
-                    </Text>
-
-                    {reportData.main_result && (
-                      <View
-                        style={[
-                          dynamicStyles.resultBadge,
-                          {
-                            backgroundColor:
-                              reportData.main_result.category === "in-range"
+                        <View
+                          style={[
+                            dynamicStyles.resultBadge,
+                            {
+                              backgroundColor: analysisData.isInRange
                                 ? "#4CAF50"
                                 : "#FF9800",
-                          },
-                        ]}
-                      >
-                        <Text style={dynamicStyles.resultBadgeText}>
-                          {reportData.main_result.category === "in-range"
-                            ? st.inRange || "In Range"
-                            : st.outOfRange || "Out of Range"}
-                        </Text>
+                            },
+                          ]}
+                        >
+                          <Text style={dynamicStyles.resultBadgeText}>
+                            {analysisData.isInRange
+                              ? st.inRange || "In Range"
+                              : st.outOfRange || "Out of Range"}
+                          </Text>
+                        </View>
                       </View>
-                    )}
 
-                    {reportData.main_result && (
                       <Text style={dynamicStyles.categoryText}>
                         {st.category || "Category"}:{" "}
-                        {formatCategory(reportData.main_result.predicted)}
+                        {analysisData.predictedCategory}
                       </Text>
-                    )}
 
-                    {/* Probability distribution */}
-                    {reportData.all_probabilities && (
-                      <View style={dynamicStyles.probabilitiesContainer}>
-                        <Text style={dynamicStyles.probabilitiesHeader}>
-                          {st.categorySimilarity || "Category Similarity"}
+                      {/* Validation Probability - Now with transformed value */}
+                      <View style={dynamicStyles.validationContainer}>
+                        <Text style={dynamicStyles.scoresSectionTitle}>
+                          {st.validationProbability || "Validation Probability"}
                         </Text>
-                        {Object.entries(reportData.all_probabilities)
-                          .sort(([, a], [, b]) => b - a) // Sort by value, highest first
-                          .map(([key, value], index) => (
-                            <View
-                              key={key}
-                              style={dynamicStyles.probabilityRow}
-                              testID={`probability-row-${index}`}
-                            >
-                              <Text style={dynamicStyles.probabilityName}>
-                                {formatCategory(key)}
-                              </Text>
-                              <Text style={dynamicStyles.probabilityValue}>
-                                {value.toFixed(2)}%
-                              </Text>
-                              <View style={dynamicStyles.probabilityBar}>
-                                <View
-                                  style={[
-                                    dynamicStyles.probabilityFill,
-                                    { width: `${value}%` },
-                                  ]}
-                                />
-                              </View>
+                        <View style={dynamicStyles.scoreRow}>
+                          <View style={dynamicStyles.scoreNameContainer}>
+                            <Text style={dynamicStyles.scoreName}>
+                              {analysisData.isInRange
+                                ? st.inRange || "In Range"
+                                : st.outOfRange || "Out of Range"}
+                            </Text>
+                          </View>
+                          <View style={dynamicStyles.scoreBarContainer}>
+                            <View style={dynamicStyles.scoreBarBackground}>
+                              <View
+                                style={[
+                                  dynamicStyles.scoreBarFill,
+                                  {
+                                    width: `${analysisData.transformedValidationProbability}%`,
+                                    backgroundColor: colors.primary,
+                                  },
+                                ]}
+                              />
                             </View>
-                          ))}
+                            <Text style={dynamicStyles.scoreValue}>
+                              {analysisData.transformedValidationProbability.toFixed(
+                                1
+                              )}
+                              %
+                            </Text>
+                          </View>
+                        </View>
                       </View>
+
+                      <View style={dynamicStyles.divider} />
+
+                      <Text style={dynamicStyles.scoresSectionTitle}>
+                        {st.categorySimilarity || "Category Similarity"}
+                      </Text>
+
+                      {analysisData.similarityScores.map((item, index) => (
+                        <View
+                          key={index}
+                          style={dynamicStyles.scoreRow}
+                          testID={`score-row-${index}`}
+                        >
+                          <View style={dynamicStyles.scoreNameContainer}>
+                            <Text style={dynamicStyles.scoreName}>
+                              {item.category}
+                            </Text>
+                          </View>
+                          <View style={dynamicStyles.scoreBarContainer}>
+                            <View style={dynamicStyles.scoreBarBackground}>
+                              <View
+                                style={[
+                                  dynamicStyles.scoreBarFill,
+                                  {
+                                    width: `${item.score}%`,
+                                    backgroundColor:
+                                      index === 0 ? colors.primary : "#607D8B",
+                                  },
+                                ]}
+                              />
+                            </View>
+                            <Text style={dynamicStyles.scoreValue}>
+                              {item.score.toFixed(1)}%
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+
+                      {/* Save button for Analysis Data Card */}
+                      <View
+                        style={[dynamicStyles.reportActions, { marginTop: 20 }]}
+                      >
+                        <TouchableOpacity
+                          style={dynamicStyles.saveButton}
+                          onPress={() => saveReport(true)}
+                          testID="save-analysis-button"
+                        >
+                          <Text style={dynamicStyles.buttonText}>
+                            {st.saveReport || "Save Report"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Experiment AI Results Button */}
+                  {showExperimentButton &&
+                    analysisData &&
+                    !isLoadingAI &&
+                    !showAIResults && (
+                      <TouchableOpacity
+                        style={dynamicStyles.experimentButton}
+                        onPress={fetchAIPrediction}
+                        testID="ai-experiment-button"
+                      >
+                        {/* Magic Wand Icon */}
+                        <View
+                          style={{
+                            width: 24,
+                            height: 24,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Text style={{ fontSize: 20 }}>✨</Text>
+                        </View>
+                        <Text style={dynamicStyles.experimentButtonText}>
+                          Experimental AI Results
+                        </Text>
+                      </TouchableOpacity>
                     )}
-                  </View>
 
-                  <View style={dynamicStyles.reportActions}>
-                    <TouchableOpacity
-                      style={dynamicStyles.saveButton}
-                      onPress={() => saveReport(false)}
-                      testID="save-report-button"
-                    >
-                      <Text style={dynamicStyles.buttonText}>
-                        {st.saveReport || "Save Report"}
+                  {/* AI Results Loading Indicator */}
+                  {isLoadingAI && (
+                    <View style={dynamicStyles.loaderContainer}>
+                      <ActivityIndicator size="large" color={colors.primary} />
+                      <Text style={dynamicStyles.loaderText}>
+                        Analyzing with AI...
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                  )}
 
-                    <TouchableOpacity
-                      style={dynamicStyles.shareButton}
-                      onPress={() => Linking.openURL(mailtoLink)}
-                      testID="share-report-button"
+                  {/* AI Results Card */}
+                  {showAIResults && aiPrediction !== null && (
+                    <View
+                      style={dynamicStyles.aiResultsCard}
+                      testID="ai-results-card"
                     >
-                      <Text style={dynamicStyles.buttonText}>
-                        {st.shareResults || "Share"}
+                      <Text style={dynamicStyles.responseTitle}>
+                        AI Prediction Results
                       </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+
+                      <View style={dynamicStyles.aiResultsContent}>
+                        <Text style={dynamicStyles.aiResultsLabel}>
+                          AI Prediction:
+                        </Text>
+                        <View
+                          style={[
+                            dynamicStyles.resultBadge,
+                            {
+                              backgroundColor: aiPrediction
+                                ? "#4CAF50"
+                                : "#FF9800",
+                              alignSelf: "flex-start",
+                            },
+                          ]}
+                        >
+                          <Text style={dynamicStyles.resultBadgeText}>
+                            {aiPrediction
+                              ? st.inRange || "In Range"
+                              : st.outOfRange || "Out of Range"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={dynamicStyles.aiResultsContent}>
+                        <Text style={dynamicStyles.aiResultsLabel}>
+                          AI Confidence:
+                        </Text>
+                        <View style={dynamicStyles.scoreRow}>
+                          <View style={dynamicStyles.scoreBarContainer}>
+                            <View style={dynamicStyles.scoreBarBackground}>
+                              <View
+                                style={[
+                                  dynamicStyles.scoreBarFill,
+                                  {
+                                    width: `${aiConfidence}%`,
+                                    backgroundColor: colors.primary,
+                                  },
+                                ]}
+                              />
+                            </View>
+                            <Text style={dynamicStyles.scoreValue}>
+                              {aiConfidence.toFixed(1)}%
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      <View style={dynamicStyles.divider} />
+
+                      <View style={dynamicStyles.whatDoesThisMeanContainer}>
+                        <Text style={dynamicStyles.whatDoesThisMeanTitle}>
+                          What does this mean?
+                        </Text>
+                        <Text style={dynamicStyles.whatDoesThisMeanText}>
+                          This experimental AI model uses a binary
+                          classification system to predict if wood veneer colors
+                          are in range or out of range. The model was trained on
+                          hundreds of wood veneer samples and uses computer
+                          vision techniques to analyze color values in the LAB
+                          color space. The confidence score indicates how
+                          certain the AI is about its prediction. Please note
+                          that this is an experimental feature and results may
+                          vary.
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Full Report Results */}
+                  {reportData && (
+                    <View
+                      style={dynamicStyles.reportContainer}
+                      testID="full-report-container"
+                    >
+                      <Text style={dynamicStyles.reportTitle}>
+                        {st.reportTitle || "Wood Analysis Report"}
+                      </Text>
+
+                      <View style={dynamicStyles.reportSection}>
+                        <Text style={dynamicStyles.sectionHeader}>
+                          {st.woodClassification}
+                        </Text>
+                        <Text style={dynamicStyles.woodType}>
+                          {formatWoodType(
+                            reportData.wood_type?.classification
+                          ) || st.unknown}
+                        </Text>
+
+                        {reportData.main_result && (
+                          <View
+                            style={[
+                              dynamicStyles.resultBadge,
+                              {
+                                backgroundColor:
+                                  reportData.main_result.category === "in-range"
+                                    ? "#4CAF50"
+                                    : "#FF9800",
+                              },
+                            ]}
+                          >
+                            <Text style={dynamicStyles.resultBadgeText}>
+                              {reportData.main_result.category === "in-range"
+                                ? st.inRange || "In Range"
+                                : st.outOfRange || "Out of Range"}
+                            </Text>
+                          </View>
+                        )}
+
+                        {reportData.main_result && (
+                          <Text style={dynamicStyles.categoryText}>
+                            {st.category || "Category"}:{" "}
+                            {formatCategory(reportData.main_result.predicted)}
+                          </Text>
+                        )}
+
+                        {/* Probability distribution */}
+                        {reportData.all_probabilities && (
+                          <View style={dynamicStyles.probabilitiesContainer}>
+                            <Text style={dynamicStyles.probabilitiesHeader}>
+                              {st.categorySimilarity || "Category Similarity"}
+                            </Text>
+                            {Object.entries(reportData.all_probabilities)
+                              .sort(([, a], [, b]) => b - a) // Sort by value, highest first
+                              .map(([key, value], index) => (
+                                <View
+                                  key={key}
+                                  style={dynamicStyles.probabilityRow}
+                                  testID={`probability-row-${index}`}
+                                >
+                                  <Text style={dynamicStyles.probabilityName}>
+                                    {formatCategory(key)}
+                                  </Text>
+                                  <Text style={dynamicStyles.probabilityValue}>
+                                    {value.toFixed(2)}%
+                                  </Text>
+                                  <View style={dynamicStyles.probabilityBar}>
+                                    <View
+                                      style={[
+                                        dynamicStyles.probabilityFill,
+                                        { width: `${value}%` },
+                                      ]}
+                                    />
+                                  </View>
+                                </View>
+                              ))}
+                          </View>
+                        )}
+                      </View>
+
+                      <View style={dynamicStyles.reportActions}>
+                        <TouchableOpacity
+                          style={dynamicStyles.saveButton}
+                          onPress={() => saveReport(false)}
+                          testID="save-report-button"
+                        >
+                          <Text style={dynamicStyles.buttonText}>
+                            {st.saveReport || "Save Report"}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={dynamicStyles.shareButton}
+                          onPress={() => Linking.openURL(mailtoLink)}
+                          testID="share-report-button"
+                        >
+                          <Text style={dynamicStyles.buttonText}>
+                            {st.shareResults || "Share"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </>
               )}
             </View>
           )}
