@@ -2201,7 +2201,7 @@ export default function ImagePickerScreen() {
                       <Text style={{ fontSize: 20 }}>✨</Text>
                     </View>
                     <Text style={dynamicStyles.experimentButtonText}>
-                      Experiment AI Results
+                      Experimental AI Results
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -2284,7 +2284,8 @@ export default function ImagePickerScreen() {
                       veneer samples and uses computer vision techniques to
                       analyze color values in the LAB color space. The
                       confidence score indicates how certain the AI is about its
-                      prediction.
+                      prediction. Please note that this is an experimental
+                      feature and results may vary.
                     </Text>
                   </View>
                 </View>
