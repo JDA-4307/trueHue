@@ -9,21 +9,21 @@ from scipy.spatial.distance import euclidean
 
 # ============= CONFIGURATION =============
 # Base dataset path
-BASE_DATASET_PATH = "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/images-dataset-4.0"
+BASE_DATASET_PATH = "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/images-dataset-5.0"
 
 # Mapping of colors to their respective dataset paths and reference profiles
 COLOR_CONFIG = {
     "medium-cherry": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "medium-cherry"),
-        "reference_csv": "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/data_processing/category_distances_normalized_medium_cherry.csv"
+        "reference_csv": "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/data_processing/category_distances_normalized_medium_cherry_2.0.csv"
     },
     "desert-oak": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "desert-oak"),
-        "reference_csv": "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/data_processing/category_distances_normalized_desert_oak.csv"
+        "reference_csv": "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/data_processing/category_distances_normalized_desert_oak_2.0.csv"
     },
     "graphite-walnut": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "graphite-walnut"),
-        "reference_csv": "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/data_processing/category_distances_normalized_graphite_walnut.csv"
+        "reference_csv": "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/data_processing/category_distances_normalized_graphite_walnut_2.0.csv"
     }
 }
 
