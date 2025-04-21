@@ -9,21 +9,21 @@ from scipy.spatial.distance import euclidean
 
 # ============= CONFIGURATION =============
 # Base dataset path
-BASE_DATASET_PATH = "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/images-dataset-5.0"
+BASE_DATASET_PATH = "JIC_4307_ColorValidation/backend/images-dataset-5.0"
 
 # Mapping of colors to their respective dataset paths and reference profiles
 COLOR_CONFIG = {
     "medium-cherry": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "medium-cherry"),
-        "reference_csv": "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/data_processing/category_distances_normalized_medium_cherry_2.0.csv"
+        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_medium_cherry.csv"
     },
     "desert-oak": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "desert-oak"),
-        "reference_csv": "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/data_processing/category_distances_normalized_desert_oak_2.0.csv"
+        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_desert_oak_2.0.csv"
     },
     "graphite-walnut": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "graphite-walnut"),
-        "reference_csv": "/Users/rishimanimaran/Documents/College/junior-year/spring-2025/cs-3312/color-validation-app-spring/data_processing/category_distances_normalized_graphite_walnut_2.0.csv"
+        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_graphite_walnut_2.0.csv"
     }
 }
 
@@ -122,7 +122,7 @@ def calculate_image_distribution(input_image_path, dataset_path, max_images_per_
         max_images_per_category: Maximum number of images to use from each category
         normalize: Whether to normalize distances to 0-100 scale
         
-    Returns:
+    Returns:    
         pandas.Series: Average distances to each category
     """
     if not os.path.exists(input_image_path):
