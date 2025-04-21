@@ -46,7 +46,7 @@ BASE_DATASET_PATH = os.path.join(SCRIPT_DIR, "images-dataset-5.0")
 COLOR_CONFIG = {
     "medium-cherry": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "medium-cherry"),
-        "reference_csv": os.path.join(SCRIPT_DIR, "category_distances_normalized_medium_cherr_2.0.csv")
+        "reference_csv": os.path.join(SCRIPT_DIR, "category_distances_normalized_medium_cherry_2.0.csv")
     },
     "desert-oak": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "desert-oak"),
