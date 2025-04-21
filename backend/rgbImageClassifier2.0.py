@@ -15,15 +15,15 @@ BASE_DATASET_PATH = "JIC_4307_ColorValidation/backend/images-dataset-5.0"
 COLOR_CONFIG = {
     "medium-cherry": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "medium-cherry"),
-        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_medium_cherry_2.0.csv"
+        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_medium_cherry.csv"
     },
     "desert-oak": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "desert-oak"),
-        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_desert_oak_2.0.csv"
+        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_desert_oak.csv"
     },
     "graphite-walnut": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "graphite-walnut"),
-        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_graphite_walnut_2.0.csv"
+        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_graphite_walnut.csv"
     }
 }
 

@@ -40,21 +40,21 @@ import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Base dataset path (using absolute path)
-BASE_DATASET_PATH = os.path.join(SCRIPT_DIR, "images-dataset-4.0")
+BASE_DATASET_PATH = os.path.join(SCRIPT_DIR, "images-dataset-5.0")
 
 # Mapping of colors to their respective dataset paths and reference profiles
 COLOR_CONFIG = {
     "medium-cherry": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "medium-cherry"),
-        "reference_csv": os.path.join(SCRIPT_DIR, "category_distances_normalized_medium_cherry.csv")
+        "reference_csv": os.path.join(SCRIPT_DIR, "category_distances_normalized_medium_cherr_2.0.csv")
     },
     "desert-oak": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "desert-oak"),
-        "reference_csv": os.path.join(SCRIPT_DIR, "category_distances_normalized_desert_oak.csv")
+        "reference_csv": os.path.join(SCRIPT_DIR, "category_distances_normalized_desert_oak_2.0.csv")
     },
     "graphite-walnut": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "graphite-walnut"),
-        "reference_csv": os.path.join(SCRIPT_DIR, "category_distances_normalized_graphite_walnut.csv")
+        "reference_csv": os.path.join(SCRIPT_DIR, "category_distances_normalized_graphite_walnut_2.0.csv")
     }
 }
 

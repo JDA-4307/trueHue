@@ -9,21 +9,21 @@ from scipy.spatial.distance import euclidean
 
 # ============= CONFIGURATION =============
 # Base dataset path
-BASE_DATASET_PATH = "JIC_4307_ColorValidation/backend/images-dataset-5.0"
+BASE_DATASET_PATH = "images-dataset-5.0"
 
 # Mapping of colors to their respective dataset paths and reference profiles
 COLOR_CONFIG = {
     "medium-cherry": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "medium-cherry"),
-        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_medium_cherry_2.0.csv"
+        "reference_csv": "category_distances_normalized_medium_cherry.csv"
     },
     "desert-oak": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "desert-oak"),
-        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_desert_oak_2.0.csv"
+        "reference_csv": "ccategory_distances_normalized_desert_oak.csv"
     },
     "graphite-walnut": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "graphite-walnut"),
-        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_graphite_walnut_2.0.csv"
+        "reference_csv": "category_distances_normalized_graphite_walnut.csv"
     }
 }
 
@@ -543,7 +543,7 @@ def validate_classifier_accuracy(dataset_path, reference_profiles_csv, max_image
 def main():
     # Set up command line arguments
     parser = argparse.ArgumentParser(description='Classify a wood veneer image based on RGB Euclidean distance profile.')
-    parser.add_argument('--image', type=str, required=True, help='Path to the input image')
+    parser.add_argument('--image', type=str, required=False, help='Path to the input image')
     parser.add_argument('--color', type=str, default=DEFAULT_COLOR, 
                         choices=list(COLOR_CONFIG.keys()), help='Wood color to use for classification')
     parser.add_argument('--max_images', type=int, default=20, help='Maximum images to use per category')
