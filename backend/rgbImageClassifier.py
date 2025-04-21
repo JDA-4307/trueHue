@@ -15,7 +15,7 @@ BASE_DATASET_PATH = "JIC_4307_ColorValidation/backend/images-dataset-5.0"
 COLOR_CONFIG = {
     "medium-cherry": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "medium-cherry"),
-        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_medium_cherry.csv"
+        "reference_csv": "JIC_4307_ColorValidation/backend/category_distances_normalized_medium_cherry_2.0.csv"
     },
     "desert-oak": {
         "dataset_path": os.path.join(BASE_DATASET_PATH, "desert-oak"),
