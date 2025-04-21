@@ -2212,14 +2212,14 @@ export default function ImagePickerScreen() {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                      style={dynamicStyles.shareButton}
-                      onPress={() => Linking.openURL(mailtoLink)}
-                      testID="share-report-button"
-                    >
-                      <Text style={dynamicStyles.buttonText}>
-                        {st.shareResults || "Share"}
-                      </Text>
-                    </TouchableOpacity>
+                          style={dynamicStyles.shareButton}
+                          onPress={() => Linking.openURL(mailtoLink)}
+                          testID="share-report-button"
+                        >
+                          <Text style={dynamicStyles.buttonText}>
+                            {st.shareResults || "Share"}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
                   )}
