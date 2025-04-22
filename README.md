@@ -5,6 +5,10 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
 <img src="image.png" alt="Steelcase Logo" width="400">
 </p>
 
+## Documentation Links
+- [Installation Guide](Installation-Guide.pdf)
+- [Detailed Design Document (PDF)](JIC-4307-Final-Report-Color-Validator.pdf)
+  
 ## Setup
  1. Clone this repository onto your computer.
  2. Install Node.js onto your computer. https://nodejs.org/en
