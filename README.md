@@ -22,6 +22,7 @@ This project, "Color Verification & Validation," is developed to assist **Steelc
 * Push Notifications
 * Autosave
 * Multilanguage
+* The Report page now includes the picture of the sample
 
 #### Bug Fixes
 - Fixed UI Displays where multiple results were displayed that were inconsistent with each other.
