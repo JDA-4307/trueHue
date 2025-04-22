@@ -19,6 +19,7 @@ import { useSettings, getThemeColors } from "./settings";
 import translations from "../../assets/translations/textTranslationsIndex";
 import screenTranslations from "../../assets/translations/textTranslationsTwo";
 import { useFocusEffect } from "@react-navigation/native";
+import { green, red } from "react-native-reanimated/lib/typescript/Colors";
 
 interface Report {
   id: string;
@@ -47,13 +48,15 @@ const Two = () => {
   const [filteredReports, setFilteredReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedAccuracy, setSelectedAccuracy] = useState<string>("");
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedWoodType, setSelectedWoodType] = useState<string>("All");
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>("");
   const [refreshKey, setRefreshKey] = useState(0); // Add a refresh key to force re-renders
-
+  const green = "#228B22";
+  const red = "#FF4C4C";
   // Get settings from context
   const { settings } = useSettings();
 
@@ -245,6 +248,13 @@ const Two = () => {
     }
   };
 
+  const isRange = (accuracy: string) => {
+    if (accuracy.toLowerCase().includes("in")) {
+      return true;
+    }
+    return false;
+  };
+
   // Manual refresh function for pull-to-refresh or refresh button
   const refreshReports = () => {
     setRefreshKey((prevKey) => prevKey + 1); // Increment the refresh key to trigger a re-render
@@ -302,12 +312,20 @@ const Two = () => {
       );
     }
 
+    if (selectedAccuracy) {
+      filtered = filtered.filter((report) => {
+        const reportAccuracy = report.accuracy;
+        return reportAccuracy === selectedAccuracy;
+      });
+    }
+
     setFilteredReports(filtered);
   }, [
     selectedMonth,
     selectedDay,
     selectedYear,
     selectedWoodType,
+    selectedAccuracy,
     reports,
     st.all,
     st.graphiteWalnut,
@@ -550,6 +568,7 @@ const Two = () => {
                   </Picker>
                 </View>
               </View>
+              
 
               <View style={dynamicStyles.pickerWrapper}>
                 <Text style={dynamicStyles.pickerLabel}>{st.woodType}</Text>
@@ -602,7 +621,14 @@ const Two = () => {
                         {report.wood_type}
                       </Text>
                     </TouchableOpacity>
-                    <Text style={dynamicStyles.reportAccuracy}>
+                    <Text
+                      style={{
+                        ...dynamicStyles.reportAccuracy,
+                        color: isRange(report.accuracy)
+                          ? colors.green
+                          : colors.red,
+                      }}
+                    >
                       {report.accuracy}
                     </Text>
                     <TouchableOpacity

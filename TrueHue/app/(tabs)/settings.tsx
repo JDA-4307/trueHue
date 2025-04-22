@@ -124,6 +124,8 @@ export const getThemeColors = (darkMode) => {
       primary: "#8A3FFC",
       secondary: "#B69EFC",
       border: "#333333",
+      green: "#228B22",
+      red: "#FF4C4C",
       switch: {
         track: { false: "#555555", true: "#B69EFC" },
         thumb: { false: "#AAAAAA", true: "#8A3FFC" },
@@ -138,6 +140,8 @@ export const getThemeColors = (darkMode) => {
       primary: "#8A3FFC",
       secondary: "#B69EFC",
       border: "#D9D9E3",
+      green: "#228B22",
+      red: "#FF4C4C",
       switch: {
         track: { false: "#D9D9E3", true: "#B69EFC" },
         thumb: { false: "#f4f3f4", true: "#8A3FFC" },
