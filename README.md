@@ -10,7 +10,7 @@ The Steelcase AI-Powered Color Validator is a mobile application designed to ass
 - [Detailed Design Document (PDF)](JIC-4307-Final-Report-Color-Validator.pdf)
 
 ## Prerequisites
-- M1 Mac computer  
+- Computer  
 - Internet connection  
 
 ## Software Installation
