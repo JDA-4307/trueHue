@@ -48,15 +48,13 @@ const Two = () => {
   const [filteredReports, setFilteredReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
-  const [selectedAccuracy, setSelectedAccuracy] = useState<string>("");
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedWoodType, setSelectedWoodType] = useState<string>("All");
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>("");
   const [refreshKey, setRefreshKey] = useState(0); // Add a refresh key to force re-renders
-  const green = "#228B22";
-  const red = "#FF4C4C";
+  const [selectedRange, setSelectedRange] = useState<string>("");
   // Get settings from context
   const { settings } = useSettings();
 
@@ -284,6 +282,15 @@ const Two = () => {
       });
     }
 
+    if (selectedRange) {
+      filtered = filtered.filter((report) => {
+        const lower = report.accuracy.toLowerCase();
+        return selectedRange === "in"
+          ? lower.includes("in")
+          : !lower.includes("in");
+      });
+    }
+
     // Create a mapping to handle localized wood type names
     const woodTypeToEnglish: Record<string, string> = {
       [st.graphiteWalnut]: "Graphite Walnut",
@@ -312,20 +319,13 @@ const Two = () => {
       );
     }
 
-    if (selectedAccuracy) {
-      filtered = filtered.filter((report) => {
-        const reportAccuracy = report.accuracy;
-        return reportAccuracy === selectedAccuracy;
-      });
-    }
-
     setFilteredReports(filtered);
   }, [
     selectedMonth,
     selectedDay,
     selectedYear,
     selectedWoodType,
-    selectedAccuracy,
+    selectedRange,
     reports,
     st.all,
     st.graphiteWalnut,
@@ -569,6 +569,23 @@ const Two = () => {
                 </View>
               </View>
               
+              <View style={dynamicStyles.pickerWrapper}>
+                <Text style={dynamicStyles.pickerLabel}>{st.range}</Text>
+                  <View style={dynamicStyles.pickerContainer}>
+                    <Picker
+                      selectedValue={selectedRange}
+                      onValueChange={setSelectedRange}
+                      style={dynamicStyles.picker}
+                      dropdownIconColor={colors.primary}
+                      mode="dropdown"
+                      itemStyle={dynamicStyles.pickerItem}
+                    >
+                      <Picker.Item label={st.allRange} value="" />
+                      <Picker.Item label={st.inRange} value="in" />
+                      <Picker.Item label={st.outOfRange} value="out" />
+                    </Picker>
+                  </View>
+                </View>
 
               <View style={dynamicStyles.pickerWrapper}>
                 <Text style={dynamicStyles.pickerLabel}>{st.woodType}</Text>
@@ -593,6 +610,7 @@ const Two = () => {
                 </View>
               </View>
             </View>
+            
           </View>
 
           {loading ? (

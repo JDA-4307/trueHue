@@ -572,7 +572,7 @@ def predict_binary_classification(interpreter, preprocessed_image, threshold=0.5
         return {
             "is_in_range": is_in_range,
             "confidence": raw_confidence,
-            "raw_prediction": prediction_value
+            "raw_prediction": raw_confidence
         }
     
     except Exception as e:

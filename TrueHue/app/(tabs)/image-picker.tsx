@@ -180,6 +180,7 @@ export default function ImagePickerScreen() {
       reportSaved: "Report saved successfully",
       errorSaving: "Error saving report",
       aiModelInfo: "About the AI Model",
+      allRanges: "Select Range",
     };
   }
 
@@ -1144,10 +1145,11 @@ export default function ImagePickerScreen() {
         "processWoodClassification",
         "Analysis complete, showing alert"
       );
+      /*
       Alert.alert(
         st.reportGenerated || "Report Generated",
         summary + "\n\n" + (st.seeDetails || "See details below.")
-      );
+      );*/
 
       // Send notification if enabled
       try {
