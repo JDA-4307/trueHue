@@ -63,6 +63,7 @@ const screenTranslations = {
     outOfRangeTooDark: "Too Dark (Out of Range)",
     outOfRangeTooLight: "Too Light (Out of Range)",
     viewFullReport: "View Full Report",
+    allRange: "Select Range"
   },
   es: {
     appTitle: "Asistente de análisis de madera",

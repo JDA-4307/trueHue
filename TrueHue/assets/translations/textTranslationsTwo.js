@@ -19,6 +19,10 @@ const screenTranslations = {
     reportContent:
       "This is a detailed report of your wood analysis. The results are based on the image you provided.\nThe analysis includes the classification of the wood type, confidence levels, and any specialized tests that were performed.\n\nReport Summary:\n- Wood Type: {wood_type}\n- Accuracy: {accuracy}%\n- Date: {date}\n\nPlease review the results carefully and let us know if you have any questions or need further assistance.",
     errorSharing: "Error sharing report:",
+    inRange: "In Range",
+    outOfRange: "Out of Range",
+    allRange: "All Ranges",
+    range: "Range",
   },
   es: {
     appTitle: "Informes de Identificación de Madera",
@@ -40,6 +44,9 @@ const screenTranslations = {
     reportContent:
       "Este es un informe detallado de su análisis de madera. Los resultados se basan en la imagen que proporcionó.\nEl análisis incluye la clasificación del tipo de madera, niveles de confianza y cualquier prueba especializada que se haya realizado.\n\nResumen del Informe:\n- Tipo de Madera: {wood_type}\n- Precisión: {accuracy}%\n- Fecha: {date}\n\nPor favor revise los resultados cuidadosamente y háganos saber si tiene alguna pregunta o necesita asistencia adicional.",
     errorSharing: "Error al compartir informe:",
+    outOfRange: "Fuera de rango",
+    allRange: "Todos los rangos",
+    range: "Rango",
   },
   fr: {
     appTitle: "Rapports d'Identification du Bois",
@@ -61,6 +68,10 @@ const screenTranslations = {
     reportContent:
       "Voici un rapport détaillé de votre analyse de bois. Les résultats sont basés sur l'image que vous avez fournie.\nL'analyse comprend la classification du type de bois, les niveaux de confiance et tous les tests spécialisés qui ont été effectués.\n\nRésumé du Rapport:\n- Type de Bois: {wood_type}\n- Précision: {accuracy}%\n- Date: {date}\n\nVeuillez examiner attentivement les résultats et nous faire savoir si vous avez des questions ou besoin d'une assistance supplémentaire.",
     errorSharing: "Erreur lors du partage du rapport:",
+    outOfRange: "Hors de portée",
+    allRange: "Tous les intervalles",
+    range: "Intervalle",
+    
   },
   de: {
     appTitle: "Holzidentifikationsberichte",
@@ -82,6 +93,10 @@ const screenTranslations = {
     reportContent:
       "Dies ist ein detaillierter Bericht Ihrer Holzanalyse. Die Ergebnisse basieren auf dem von Ihnen bereitgestellten Bild.\nDie Analyse umfasst die Klassifizierung der Holzart, Konfidenzniveaus und alle durchgeführten spezialisierten Tests.\n\nBerichtszusammenfassung:\n- Holzart: {wood_type}\n- Genauigkeit: {accuracy}%\n- Datum: {date}\n\nBitte überprüfen Sie die Ergebnisse sorgfältig und lassen Sie uns wissen, wenn Sie Fragen haben oder weitere Unterstützung benötigen.",
     errorSharing: "Fehler beim Teilen des Berichts:",
+    outOfRange: "Außerhalb des Bereichs",
+    allRange: "Alle Bereiche",
+    range: "Bereich",
+
   },
   zh: {
     appTitle: "木材识别报告",
@@ -103,6 +118,9 @@ const screenTranslations = {
     reportContent:
       "这是您的木材分析的详细报告。结果基于您提供的图像。\n分析包括木材类型的分类、置信度以及进行的任何专业测试。\n\n报告摘要:\n- 木材类型: {wood_type}\n- 准确度: {accuracy}%\n- 日期: {date}\n\n请仔细查看结果，如有任何问题或需要进一步帮助，请告知我们。",
     errorSharing: "分享报告时出错:",
+    outOfRange: "超出范围",outOfRange: "超出范围",
+    allRange: "所有范围",
+    range: "范围",    
   },
 };
 
