@@ -1,5 +1,5 @@
-# Color Verification & Validation
-The Steelcase AI-Powered Color Validator is a mobile application designed to assist quality assurance and field engineers in validating wood veneer colors against Steelcase specifications. This tool streamlines the inspection process while improving accuracy and consistency through artificial intelligence.
+# trueHue: AI-Powered Veneer Validator
+The Steelcase AI-Powered Veneer Validator is a mobile application designed to assist quality assurance and field engineers in validating wood veneer colors against Steelcase specifications. This tool streamlines the inspection process while improving accuracy and consistency through artificial intelligence.
 
 <p align="center">
 <img src="image.png" alt="Steelcase Logo" width="400">
