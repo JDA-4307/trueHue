@@ -1,1 +1,4 @@
 node_modules
+
+# Jupyter Notebooks
+*.ipynb
